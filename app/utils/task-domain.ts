@@ -25,8 +25,8 @@ export class TaskValidationError extends Error {
   }
 }
 
-function assertDescription(description: string): void {
-  if (description.trim() === '') {
+function assertDescription(description: unknown): asserts description is string {
+  if (typeof description !== 'string' || description.trim() === '') {
     throw new TaskValidationError('Description is required.')
   }
 }

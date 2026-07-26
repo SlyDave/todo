@@ -36,11 +36,46 @@ describe('useTaskStorage domain operations', () => {
     const task = api.create({ description: 'Ship the board' }, { now, id: 'persisted-1', storage })
 
     expect(task.state).toBe('todo')
+    expect(task.priority).toBe('medium')
     expect(task.createdAt).toBe(now)
     expect(task.detailsModifiedAt).toBe(now)
     expect(task.stateChangedAt).toBe(now)
     expect(api.load(storage)).toEqual([task])
     expect(storage.getItem(TASKS_STORAGE_KEY)).not.toBeNull()
+  })
+
+  it('does not create a task when description is missing', () => {
+    expect(() => api.create({ description: '   ' }, { storage })).toThrow(
+      'Description is required.'
+    )
+    expect(api.load(storage)).toEqual([])
+    expect(storage.getItem(TASKS_STORAGE_KEY)).toBeNull()
+  })
+
+  it('persists optional create fields alongside a required description', () => {
+    const task = api.create(
+      {
+        title: 'With extras',
+        description: 'Body **markdown**',
+        priority: 'low',
+        dueDate: '2026-08-20',
+        backgroundColour: '#abcdef'
+      },
+      { now: '2026-07-27T08:15:00.000Z', id: 'persisted-2', storage }
+    )
+
+    expect(api.load(storage)).toEqual([
+      expect.objectContaining({
+        id: 'persisted-2',
+        title: 'With extras',
+        description: 'Body **markdown**',
+        priority: 'low',
+        dueDate: '2026-08-20',
+        backgroundColour: '#abcdef',
+        state: 'todo'
+      })
+    ])
+    expect(task.description).toBe('Body **markdown**')
   })
 
   it('changeState updates only state last changed in storage', () => {
@@ -77,13 +112,37 @@ describe('useTaskStorage domain operations', () => {
 
     const updated = api.updateDetails(
       'edit-1',
-      { title: 'Edited' },
+      {
+        title: 'Edited',
+        description: 'Updated **body**',
+        priority: 'high',
+        dueDate: '2026-09-10',
+        backgroundColour: '#010203'
+      },
       { now: '2026-07-27T11:00:00.000Z', storage }
     )
 
     expect(updated?.title).toBe('Edited')
+    expect(updated?.description).toBe('Updated **body**')
+    expect(updated?.priority).toBe('high')
+    expect(updated?.dueDate).toBe('2026-09-10')
+    expect(updated?.backgroundColour).toBe('#010203')
     expect(updated?.detailsModifiedAt).toBe('2026-07-27T11:00:00.000Z')
     expect(updated?.stateChangedAt).toBe('2026-07-26T12:00:00.000Z')
     expect(updated?.state).toBe('inProgress')
+  })
+
+  it('does not persist a details edit that clears the description', () => {
+    const created = createTask(
+      { description: 'Keep me' },
+      { now: '2026-07-26T10:00:00.000Z', id: 'edit-2' }
+    )
+    saveTasks([created], storage)
+
+    expect(() => api.updateDetails('edit-2', { description: '' }, { storage })).toThrow(
+      'Description is required.'
+    )
+    expect(api.load(storage)[0]?.description).toBe('Keep me')
+    expect(api.load(storage)[0]?.detailsModifiedAt).toBe(created.detailsModifiedAt)
   })
 })
