@@ -19,7 +19,7 @@ Generated from it:
 They serve different needs and are not mutually exclusive.
 
 **As a template repository** you get everything: the agents, the rules, the
-skills, *and* the enforcement layer — hooks, the worktree scripts, the pre-PR
+skills, _and_ the enforcement layer — hooks, the worktree scripts, the pre-PR
 gate, board validation, the ADR and contract scaffolding. This is the full
 system, and it is what the workflow is designed around.
 

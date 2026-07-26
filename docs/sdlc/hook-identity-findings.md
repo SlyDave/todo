@@ -18,9 +18,9 @@ tool, `preToolUse.conversation_id` is the subagent's own id, not the main
 conversation's. The main agent's `conversation_id` stays equal to the root
 session id for the life of the session.
 
-**A subagent's *role* is not recoverable.** `subagentStart` reports
+**A subagent's _role_ is not recoverable.** `subagentStart` reports
 `subagent_type`, but its `conversation_id`, `session_id` and
-`parent_conversation_id` are all the *parent's* id, and its `subagent_id` is the
+`parent_conversation_id` are all the _parent's_ id, and its `subagent_id` is the
 dispatching tool-use id (`toolu_...`). None of those keys reappear in the
 `preToolUse` payload the subagent later produces. There is no join column, so a
 hook cannot answer "is this write coming from the backend developer or from QA".

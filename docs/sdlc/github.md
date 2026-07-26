@@ -123,8 +123,8 @@ on showing merged work as in QA.
 
 GitHub refuses to let an account approve or request changes on its own pull
 request, and every agent here runs under the stakeholder's single identity.
-`gh pr review --approve` and `--request-changes` therefore fail with *"Can not
-request changes on your own pull request"*, and `reviewDecision` is always
+`gh pr review --approve` and `--request-changes` therefore fail with _"Can not
+request changes on your own pull request"_, and `reviewDecision` is always
 empty. Do not use either as a merge gate.
 
 What does work is a comment-type review, which carries the detail, paired with a

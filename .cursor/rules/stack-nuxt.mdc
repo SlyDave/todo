@@ -1,0 +1,16 @@
+---
+description: Stack-specific conventions for this Nuxt 4 To-Do SPA — TypeScript, Nuxt UI, Font Awesome Pro, localStorage, and static GitHub Pages.
+globs: app/**/*.{ts,vue},nuxt.config.ts,tests/**/*.ts
+alwaysApply: false
+---
+
+# Stack rules (Nuxt 4 / Vue)
+
+- **TypeScript:** `strict` and `noUncheckedIndexedAccess`. No `any` without a written justification on the call site.
+- **Locale:** British English in UI copy (`colour`, not `color` in user-facing text). Code identifiers may use `backgroundColour`.
+- **Persistence:** browser `localStorage` only. Soft-deleted tasks retained 30 days. Never invent a backend.
+- **Icons:** Font Awesome Pro via deep imports in `app/plugins/fontawesome.ts`. Never import whole style packs. Token via `FONTAWESOME_PACKAGE_TOKEN` only.
+- **Markdown:** sanitise HTML from Markdown descriptions before render (XSS even for local data).
+- **Ownership:** backend = `app/composables/**`, `app/utils/**`, `app/types/**`. Frontend = components, pages, layouts, assets, plugins, `app.vue`, `app.config.ts`, `public/**`. Shared manifests stay orchestrator-owned.
+- **Deploy:** `nuxt generate` with Nitro `github_pages` preset; custom domain `tasks.slydave.com`.
+- **Tooling:** Prettier + ESLint (warnings as errors) + `nuxt typecheck` + Vitest + `npm audit --audit-level=high`.

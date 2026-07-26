@@ -1,45 +1,73 @@
 {
-  "status": "uninitialised",
+  "status": "bootstrapping",
   "templateVersion": "0.1.0",
   "project": {
-    "name": null,
-    "description": null
+    "name": "todo",
+    "description": "Client-side To-Do SPA (Nuxt, Nuxt UI, FontAwesome Pro) with three columns, drag-and-drop, local storage, metrics, and monthly activity calendar"
   },
   "stack": {
-    "summary": null,
-    "backend": null,
-    "frontend": null,
-    "database": null,
-    "packageManager": null,
-    "architecture": null
+    "summary": "Nuxt 4 static SPA + Nuxt UI + Font Awesome Pro + localStorage",
+    "backend": "Nuxt composables/utils (domain + localStorage persistence)",
+    "frontend": "Nuxt UI + Vue components (board, metrics, calendar)",
+    "database": "browser localStorage",
+    "packageManager": "npm",
+    "architecture": "monolith"
   },
   "ownership": {
-    "mode": null,
-    "backend": [],
-    "frontend": [],
-    "qa": []
+    "mode": "monolith",
+    "backend": [
+      "app/composables/**",
+      "app/utils/**",
+      "app/types/**"
+    ],
+    "frontend": [
+      "app/components/**",
+      "app/pages/**",
+      "app/layouts/**",
+      "app/assets/**",
+      "app/plugins/**",
+      "app/app.vue",
+      "app/app.config.ts",
+      "public/**"
+    ],
+    "qa": [
+      "tests/**",
+      "e2e/**",
+      "playwright.config.*"
+    ]
   },
   "tooling": {
-    "formatCommand": null,
-    "formatExtensions": [],
+    "formatCommand": "npx prettier --write",
+    "formatExtensions": [
+      ".ts",
+      ".vue",
+      ".js",
+      ".mjs",
+      ".json",
+      ".md",
+      ".yml",
+      ".css"
+    ],
     "checks": {
-      "format": null,
-      "lint": null,
-      "typecheck": null,
-      "test": null,
-      "audit": null
+      "format": "npm run format:check",
+      "lint": "npm run lint",
+      "typecheck": "npm run typecheck",
+      "test": "npm test",
+      "audit": "npm run audit"
     },
-    "smokeTest": null
+    "smokeTest": "npm run smoke"
   },
   "tracker": {
     "provider": "github",
-    "repo": null,
+    "repo": "SlyDave/todo",
     "defaultBranch": "main",
     "useIssueTypes": false,
     "labelsApplied": false
   },
   "bootstrap": {
     "completedAt": null,
-    "stackDecisionAdr": null
+    "stackDecisionAdr": "docs/adr/2026-07-26-stack-selection.md",
+    "stage": "5-github",
+    "resumeNote": "Backlog approved. Creating GitHub repo, committing, pushing, then filing issues."
   }
 }

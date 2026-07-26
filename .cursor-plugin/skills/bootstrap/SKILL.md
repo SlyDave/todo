@@ -80,7 +80,7 @@ constrains the choice:
   deserve different answers.
 
 Then recommend one stack, name the two or three you rejected, and say why in
-terms of *their* constraints rather than general opinion. Prefer boring,
+terms of _their_ constraints rather than general opinion. Prefer boring,
 well-supported technology with strong typing and a large ecosystem.
 
 Decide the architecture at the same time, because it determines how the two

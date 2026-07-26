@@ -7,21 +7,21 @@
 // edit - a formatter that is broken or missing is not a reason to reject work
 // that has already been written.
 
-import { spawnSync } from 'node:child_process';
-import { readPayload, readState, respond, targetPathOf, toRepoRelative } from './lib.mjs';
+import { spawnSync } from 'node:child_process'
+import { readPayload, readState, respond, targetPathOf, toRepoRelative } from './lib.mjs'
 
-const payload = await readPayload();
-const state = readState();
-const command = state?.tooling?.formatCommand;
+const payload = await readPayload()
+const state = readState()
+const command = state?.tooling?.formatCommand
 
-if (!command) respond({});
+if (!command) respond({})
 
-const target = toRepoRelative(targetPathOf(payload.tool_input) ?? payload.file_path ?? '');
-if (!target) respond({});
+const target = toRepoRelative(targetPathOf(payload.tool_input) ?? payload.file_path ?? '')
+if (!target) respond({})
 
-const extensions = state?.tooling?.formatExtensions;
+const extensions = state?.tooling?.formatExtensions
 if (Array.isArray(extensions) && extensions.length > 0) {
-  if (!extensions.some((extension) => target.endsWith(extension))) respond({});
+  if (!extensions.some((extension) => target.endsWith(extension))) respond({})
 }
 
 try {
@@ -29,10 +29,10 @@ try {
     shell: true,
     cwd: process.env.CURSOR_PROJECT_DIR ?? process.cwd(),
     timeout: 20_000,
-    stdio: 'ignore',
-  });
+    stdio: 'ignore'
+  })
 } catch {
   /* a failing formatter must not fail the edit */
 }
 
-respond({});
+respond({})

@@ -70,25 +70,25 @@ worth knowing about because four were invisible locally:
 
 1. Create a scratch repository, public or private, with Issues enabled:
    `gh repo create sdlc-ai-scratch --private --clone`
-2. Copy this template into it and commit.
-3. Open it in Cursor and **reload the workspace**, so the subagents in
+1. Copy this template into it and commit.
+1. Open it in Cursor and **reload the workspace**, so the subagents in
    `.cursor/agents/` are registered.
-4. Say anything. The orchestrator should notice `.sdlc/state.json` is
+1. Say anything. The orchestrator should notice `.sdlc/state.json` is
    `uninitialised` and start the interview rather than doing what you asked.
-5. Give it a small project — a URL shortener is about the right size — and answer
+1. Give it a small project — a URL shortener is about the right size — and answer
    "I don't know" when it asks about the stack, to exercise the guided path.
-6. Check that it stops for approval before running any install command, and that
+1. Check that it stops for approval before running any install command, and that
    it does not mark bootstrap complete until a build and a smoke test pass.
-7. Check the board: labels applied, milestones created, epics and stories linked
+1. Check the board: labels applied, milestones created, epics and stories linked
    by parent, acceptance criteria present as Given/When/Then.
-8. Run `/standup` and take **one** issue all the way through:
+1. Run `/standup` and take **one** issue all the way through:
    `ready` to `planning` to `in-progress` to `in-qa` to `done`, with a pull
    request that QA reviews and the orchestrator merges.
 
 The mechanical half of that walk — labels, milestone, hierarchy, dependency,
 states, worktree, gate, pull request, rejection, re-review, merge — is
 reproducible without any agents involved, which is how the five findings above
-were isolated. What it cannot tell you is whether the agents *choose* to follow
+were isolated. What it cannot tell you is whether the agents _choose_ to follow
 the workflow, which is what the next section is for.
 
 ### What to watch for

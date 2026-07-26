@@ -1,3 +1,11 @@
+# Nuxt
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
 # Developer worktrees. Each is a full checkout on its own branch; the branches
 # are tracked, the checkouts are not.
 /.worktrees/
@@ -16,9 +24,13 @@ vendor/
 __pycache__/
 .venv/
 target/
-dist/
 build/
 coverage/
+test-results/
+playwright-report/
 
 .DS_Store
 Thumbs.db
+*.log
+.fleet
+.idea

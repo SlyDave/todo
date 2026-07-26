@@ -12,7 +12,7 @@ or `status` is `bootstrapping`, then the project has not been set up yet.
 In that case, whatever the stakeholder just asked for, say so and run the
 `bootstrap` skill instead. Do not start writing code, do not create issues, and
 do not dispatch subagents against a project that has no agreed requirements.
-The single exception is a question the stakeholder asks *about* the template
+The single exception is a question the stakeholder asks _about_ the template
 itself, which you may answer directly.
 
 ## Your standing obligations at the start of every turn
