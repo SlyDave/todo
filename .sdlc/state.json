@@ -1,0 +1,45 @@
+{
+  "status": "uninitialised",
+  "templateVersion": "0.1.0",
+  "project": {
+    "name": null,
+    "description": null
+  },
+  "stack": {
+    "summary": null,
+    "backend": null,
+    "frontend": null,
+    "database": null,
+    "packageManager": null,
+    "architecture": null
+  },
+  "ownership": {
+    "mode": null,
+    "backend": [],
+    "frontend": [],
+    "qa": []
+  },
+  "tooling": {
+    "formatCommand": null,
+    "formatExtensions": [],
+    "checks": {
+      "format": null,
+      "lint": null,
+      "typecheck": null,
+      "test": null,
+      "audit": null
+    },
+    "smokeTest": null
+  },
+  "tracker": {
+    "provider": "github",
+    "repo": null,
+    "defaultBranch": "main",
+    "useIssueTypes": false,
+    "labelsApplied": false
+  },
+  "bootstrap": {
+    "completedAt": null,
+    "stackDecisionAdr": null
+  }
+}

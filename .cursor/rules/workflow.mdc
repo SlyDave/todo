@@ -1,0 +1,112 @@
+---
+alwaysApply: true
+---
+
+# Workflow
+
+Work is tracked as GitHub Issues. State lives in labels, which are declared in
+`.sdlc/labels.yml` and created by bootstrap, so any clone reproduces them.
+
+## The six states
+
+An issue carries **exactly one** `state:` label at all times.
+
+```mermaid
+stateDiagram-v2
+    [*] --> triage
+    triage --> ready : Product Owner grooms
+    ready --> planning : Developer claims
+    planning --> ready : parked on a question
+    planning --> inprogress : plan settled
+    inprogress --> inqa : PR opened
+    inqa --> ready : QA rejects
+    inqa --> done : QA approves, PR merged
+    done --> [*]
+```
+
+- `state:triage` — raised, not yet groomed. New issues land here.
+- `state:ready` — groomed, prioritised, unblocked, safe for a developer to claim.
+- `state:planning` — a developer holds it and is resolving uncertainties.
+- `state:in-progress` — the plan is settled and implementation is under way.
+- `state:in-qa` — a pull request is open and QA is verifying.
+- `state:done` — merged, criteria met, closed.
+
+## Who may make each transition
+
+Transition ownership is strict. Making a transition that belongs to another role
+corrupts the board for every agent that reads it next.
+
+- **Product Owner**: `triage` to `ready`. Nobody else may promote work.
+- **Developer** (backend or frontend): `ready` to `planning`, `planning` to
+  `in-progress`, `in-progress` to `in-qa`, and `planning` back to `ready` when
+  parking.
+- **QA**: `in-qa` to `done`, or `in-qa` back to `ready` on rejection.
+- **Orchestrator**: none. It arbitrates and merges; it does not move cards.
+
+## Grooming bar
+
+The Product Owner may only promote to `ready` when the issue has all of: a clear
+statement of need, Given/When/Then acceptance criteria, a size, a `priority:`
+label, its parent link, and any known blockers recorded.
+
+## Blocking is orthogonal to state
+
+Blocking never replaces the state label, so an issue that gets blocked keeps the
+record of how far it got and does not need guessing back into place when it
+unblocks.
+
+- `blocked:stakeholder` — a question is outstanding with the stakeholder. Applied
+  by whoever raised it; removed by the Product Owner once answered.
+- Issue-on-issue blocking uses native GitHub dependencies (`--blocked-by`), not
+  labels, so the Product Owner can query real dependency data when sequencing.
+
+An issue whose work depends on an ADR still in `status: proposed` is blocked.
+
+## Park and move on
+
+When a developer hits a question it cannot resolve from `PROJECT.md`,
+`CONTEXT.md` or the ADRs:
+
+1. Post the question as a comment on the issue.
+2. Apply `blocked:stakeholder` and return it to `state:ready`.
+3. Report the question in the response to the orchestrator.
+4. **Claim the next unblocked `state:ready` issue** rather than idling.
+
+Only when no workable issue exists should a developer stop and report that it is
+blocked entirely, which is itself useful signal that the stakeholder has become
+the bottleneck.
+
+Provisional assumptions are not permitted. A developer may not proceed on a
+guess, however low the perceived risk.
+
+## Hierarchy
+
+- Milestones are GitHub Milestones.
+- Epics, stories and tasks are issues linked with native parent/sub-issue
+  relationships, labelled `level:epic`, `level:story`, `level:task`.
+- Use cases are **not** separate issues. They are Given/When/Then acceptance
+  criteria in the story body, where QA reads them as the definition of done.
+- In an organisation that defines issue types, bootstrap sets `--type` as well;
+  the `level:` labels remain the source of truth so personal repos behave
+  identically.
+
+## Branches and integration
+
+One issue, one branch, one pull request. Branch names encode the role, which is
+what lets the pre-PR gate check that a branch only touched paths its role owns.
+
+- `backend/issue-<n>`, `frontend/issue-<n>`, `qa/issue-<n>`
+
+The PR body must contain `Closes #<n>` and state how each acceptance criterion is
+met. No pull request may be opened until `node .sdlc/scripts/gate.mjs` passes.
+Only the orchestrator merges, and only after QA has applied `qa:approved` to the
+pull request. QA records its verdict as a label and a comment-type review, not as
+a GitHub approval, because GitHub will not let an account approve its own pull
+request and all five agents share the stakeholder's identity.
+
+## Board hygiene
+
+`node .sdlc/scripts/validate-board.mjs` checks for issues with no state label,
+more than one state label, `ready` issues that fail the grooming bar, orphaned
+`level:task` issues, and issues claimed by two branches at once. The Product
+Owner runs it before finishing; the orchestrator runs it during `/standup`.

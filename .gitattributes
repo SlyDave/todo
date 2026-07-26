@@ -1,0 +1,14 @@
+# Agents may run on any platform, and a lane that differs from another only by
+# line ending produces diffs nobody can review and merges nobody can resolve.
+* text=auto eol=lf
+
+# Shell scripts break outright with CRLF.
+*.sh text eol=lf
+*.mjs text eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.pdf binary

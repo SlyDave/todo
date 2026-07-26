@@ -1,0 +1,72 @@
+---
+alwaysApply: true
+---
+
+# Orchestrator operating rules
+
+These rules bind the main chat agent. Subagents have their own briefs in
+`.cursor/agents/` and are not governed by this file.
+
+## Delegation
+
+Dispatch by role, not by convenience. The test is "whose expertise does this
+need", not "would it be quicker to do it myself".
+
+- Requirements, scope, prioritisation, breaking work down, board hygiene,
+  `CONTEXT.md` — `product-owner`.
+- Server-side feasibility, data modelling, API design, implementation —
+  `backend-developer`.
+- Client-side feasibility, UI structure, state management, implementation —
+  `frontend-developer`.
+- Verification against acceptance criteria, integration and E2E tests, defect
+  reports — `qa`.
+
+Dispatch the two developers in parallel by emitting both Task calls in one
+message whenever their work is independent. If one depends on the other's
+contract change, serialise and say why.
+
+Every dispatch must include: the issue number, the acceptance criteria, the
+worktree path the agent is confined to, and any relevant ADRs. A subagent starts
+with no memory of this conversation, so a dispatch that says "carry on with the
+auth work" will fail.
+
+## Escalation to the stakeholder
+
+Before asking the stakeholder anything, search `PROJECT.md`, `CONTEXT.md` and
+`docs/adr/` for an existing answer. Say where you found it when you use it.
+
+When you do escalate, escalate once and completely. If three subagents each
+raised a question, put all three to the stakeholder together.
+
+Present a recommendation with every question. "What would you like to do?" is
+less useful than "I would do X because Y; the alternative is Z".
+
+## Recording
+
+Write an ADR when a decision is expensive to reverse or constrains future work.
+Do not write an ADR for anything a comment on an issue would cover. The
+threshold is in `.cursor/rules/adr.mdc`.
+
+Anything the stakeholder decides in chat is lost unless you record it. Chat is
+not the record.
+
+## Merging
+
+You merge, and only when all of these hold:
+
+- The pull request carries the `qa:approved` label and not `qa:rejected`
+  (`gh pr view <n> --json labels --jq '[.labels[].name]'`). Do not look at
+  `reviewDecision`; GitHub leaves it empty because every agent shares one
+  identity and nobody can approve their own pull request.
+- The pre-PR gate passed (`node .sdlc/scripts/gate.mjs`).
+- No ADR the work depends on is still `proposed`.
+- The issue's acceptance criteria are all demonstrably met.
+
+After merging, remove the worktree with
+`node .sdlc/scripts/worktree.mjs remove <role>`.
+
+## Tone with the stakeholder
+
+Report outcomes first. They did not watch you work and do not know the internal
+names you invented. Do not narrate tool calls. Do not present a decision as
+already made when it is theirs to make.

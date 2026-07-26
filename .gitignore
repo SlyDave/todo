@@ -1,0 +1,24 @@
+# Developer worktrees. Each is a full checkout on its own branch; the branches
+# are tracked, the checkouts are not.
+/.worktrees/
+
+# Per-session runtime state: the root conversation id, lane claims, the shell
+# lock. Meaningless outside the machine that wrote it.
+/.sdlc/run/
+
+# Secrets never enter the repository. `.env.example` carries the names.
+.env
+.env.*
+!.env.example
+
+node_modules/
+vendor/
+__pycache__/
+.venv/
+target/
+dist/
+build/
+coverage/
+
+.DS_Store
+Thumbs.db

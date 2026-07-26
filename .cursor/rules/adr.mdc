@@ -1,0 +1,106 @@
+---
+description: How Architecture Decision Records work in this project - when one is required, the file format and naming, and the proposed-until-accepted lifecycle. Read before recording any decision.
+globs: docs/adr/**
+alwaysApply: false
+---
+
+# Architecture Decision Records
+
+ADRs live in `docs/adr/`, one file per decision.
+
+## When an ADR is required
+
+Write one only when a decision is **expensive to reverse** or **constrains future
+work**. In practice that means:
+
+- Stack, framework, runtime and language choices
+- Data model, persistence and migration strategy
+- Authentication, authorisation and the security posture
+- External integrations and third-party dependencies of consequence
+- Architectural boundaries, including the ownership boundary between developers
+- The shape of the interface contract between backend and frontend
+- Anything the stakeholder personally decided
+
+## When an ADR is not required
+
+Naming, file layout, which utility to reach for, how to structure a function,
+formatting, and anything a comment on the issue would cover. If reversing the
+decision is an afternoon's work, it is not an ADR.
+
+Records nobody reads are worse than no records, because they make the ones that
+matter harder to find.
+
+## Naming
+
+Date-prefixed, never sequence-numbered:
+
+```
+docs/adr/2026-07-26-adopt-postgres-for-persistence.md
+```
+
+Sequence numbers collide when two developers write ADRs simultaneously in
+separate worktrees. Dates do not.
+
+## Format
+
+```markdown
+---
+status: proposed
+date: 2026-07-26
+deciders: backend-developer
+issue: 42
+---
+
+# Adopt PostgreSQL for persistence
+
+## Context
+
+What forced a decision. The constraints that were real at the time.
+
+## Decision
+
+What was decided, stated plainly in the active voice.
+
+## Alternatives considered
+
+Each option that was genuinely on the table, and the specific reason it was
+rejected. An alternatives section that lists only strawmen is worthless in six
+months when someone asks why.
+
+## Consequences
+
+What this makes easy, what it makes hard, and what it forecloses. Include the
+bad consequences; they are the reason the record exists.
+```
+
+## Lifecycle
+
+`status` is one of:
+
+- **proposed** — written by an agent, awaiting the stakeholder. **Any issue whose
+  work depends on it is blocked** and carries `blocked:adr`.
+- **accepted** — the stakeholder has agreed. Only the stakeholder's decision moves
+  an ADR here; the orchestrator records it.
+- **rejected** — the stakeholder declined. Keep the file; the reasoning is still
+  valuable.
+- **superseded** — replaced by a later ADR, which must be linked.
+
+Agents may only write `status: proposed`. No agent may accept its own ADR.
+
+## Pestering
+
+The orchestrator lists every `status: proposed` ADR at the start of every turn
+and asks the stakeholder to accept, reject or amend it, and keeps doing so until
+none remain. The `sessionStart` hook injects the outstanding count into the first
+turn of every session so it cannot be forgotten between sessions.
+
+This is deliberate. A proposed ADR is a decision the team has made in fact but
+not in agreement, and the longer it sits the more work quietly assumes it.
+
+## Index
+
+`docs/adr/README.md` is generated. Regenerate it with:
+
+```
+node .sdlc/scripts/adr.mjs index
+```

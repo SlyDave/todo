@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [{ "command": "node .cursor/hooks/session-start.mjs", "timeout": 15 }],
+    "preToolUse": [{ "command": "node .cursor/hooks/guard-writes.mjs", "timeout": 15 }],
+    "afterFileEdit": [{ "command": "node .cursor/hooks/format-on-edit.mjs", "timeout": 30 }],
+    "beforeShellExecution": [{ "command": "node .cursor/hooks/shell-lock.mjs acquire", "timeout": 90 }],
+    "afterShellExecution": [{ "command": "node .cursor/hooks/shell-lock.mjs release", "timeout": 15 }]
+  }
+}
