@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import type { Task } from '../../app/types/task'
+import type { Task } from '../types/task'
 import {
   TASKS_STORAGE_KEY,
   isTask,
@@ -7,7 +7,7 @@ import {
   parsePersistedTasks,
   saveTasks,
   serializeTasks
-} from '../../app/utils/task-storage'
+} from './task-storage'
 
 function makeTask(overrides: Partial<Task> = {}): Task {
   return {
