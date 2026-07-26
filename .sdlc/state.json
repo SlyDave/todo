@@ -1,5 +1,5 @@
 {
-  "status": "bootstrapping",
+  "status": "ready",
   "templateVersion": "0.1.0",
   "project": {
     "name": "todo",
@@ -62,12 +62,12 @@
     "repo": "SlyDave/todo",
     "defaultBranch": "main",
     "useIssueTypes": false,
-    "labelsApplied": false
+    "labelsApplied": true
   },
   "bootstrap": {
-    "completedAt": null,
+    "completedAt": "2026-07-26T22:35:00.000Z",
     "stackDecisionAdr": "docs/adr/2026-07-26-stack-selection.md",
-    "stage": "5-github",
-    "resumeNote": "Backlog approved. Creating GitHub repo, committing, pushing, then filing issues."
+    "stage": "done",
+    "resumeNote": null
   }
 }

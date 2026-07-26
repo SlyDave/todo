@@ -1,81 +1,81 @@
-# Label definitions for the board. Applied by bootstrap and re-appliable at any
+﻿# Label definitions for the board. Applied by bootstrap and re-appliable at any
 # time with: node .sdlc/scripts/labels.mjs apply
 #
 # `state:` labels are mutually exclusive - exactly one per issue. Nothing in
 # GitHub enforces that, so validate-board.mjs treats a second one as an error.
 
 state:
-  - name: 'state:triage'
-    color: 'cfd3d7'
-    description: 'Raised, not yet groomed by the Product Owner'
-  - name: 'state:ready'
-    color: '0e8a16'
-    description: 'Groomed, prioritised and unblocked - safe to claim'
-  - name: 'state:planning'
-    color: 'fbca04'
-    description: 'A developer holds this and is resolving uncertainties'
-  - name: 'state:in-progress'
-    color: '1d76db'
-    description: 'Plan settled, implementation under way'
-  - name: 'state:in-qa'
-    color: '5319e7'
-    description: 'Pull request open, QA verifying'
-  - name: 'state:done'
-    color: '0e8a16'
-    description: 'Merged, acceptance criteria met'
+  - name: "state:triage"
+    color: "cfd3d7"
+    description: "Raised, not yet groomed by the Product Owner"
+  - name: "state:ready"
+    color: "0e8a16"
+    description: "Groomed, prioritised and unblocked - safe to claim"
+  - name: "state:planning"
+    color: "fbca04"
+    description: "A developer holds this and is resolving uncertainties"
+  - name: "state:in-progress"
+    color: "1d76db"
+    description: "Plan settled, implementation under way"
+  - name: "state:in-qa"
+    color: "5319e7"
+    description: "Pull request open, QA verifying"
+  - name: "state:done"
+    color: "0e8a16"
+    description: "Merged, acceptance criteria met"
 
 level:
-  - name: 'level:epic'
-    color: '3e4b9e'
-    description: 'A large body of work containing stories'
-  - name: 'level:story'
-    color: '5b6dd1'
-    description: 'A unit of stakeholder-visible value with acceptance criteria'
-  - name: 'level:task'
-    color: '8b97e0'
-    description: 'An implementation unit beneath a story'
+  - name: "level:epic"
+    color: "3e4b9e"
+    description: "A large body of work containing stories"
+  - name: "level:story"
+    color: "5b6dd1"
+    description: "A unit of stakeholder-visible value with acceptance criteria"
+  - name: "level:task"
+    color: "8b97e0"
+    description: "An implementation unit beneath a story"
 
 priority:
-  - name: 'priority:critical'
-    color: 'b60205'
-    description: 'Blocks release or blocks other work'
-  - name: 'priority:high'
-    color: 'd93f0b'
-    description: 'Next up'
-  - name: 'priority:medium'
-    color: 'fbca04'
-    description: 'Scheduled'
-  - name: 'priority:low'
-    color: 'c2e0c6'
-    description: 'Nice to have'
+  - name: "priority:critical"
+    color: "b60205"
+    description: "Blocks release or blocks other work"
+  - name: "priority:high"
+    color: "d93f0b"
+    description: "Next up"
+  - name: "priority:medium"
+    color: "fbca04"
+    description: "Scheduled"
+  - name: "priority:low"
+    color: "c2e0c6"
+    description: "Nice to have"
 
 blocked:
-  - name: 'blocked:stakeholder'
-    color: 'e11d21'
-    description: 'Waiting on a stakeholder decision'
-  - name: 'blocked:adr'
-    color: 'e11d21'
-    description: 'Depends on an ADR still in status: proposed'
+  - name: "blocked:stakeholder"
+    color: "e11d21"
+    description: "Waiting on a stakeholder decision"
+  - name: "blocked:adr"
+    color: "e11d21"
+    description: "Depends on an ADR still in status: proposed"
 
 # QA's verdict on a pull request. GitHub will not let an account approve or
 # request changes on its own pull request, and every agent here shares the
 # stakeholder's identity, so reviewDecision is always empty. These labels are
 # the merge gate instead.
 qa:
-  - name: 'qa:approved'
-    color: '0e8a16'
-    description: 'QA verified this against the acceptance criteria and it passed'
-  - name: 'qa:rejected'
-    color: 'b60205'
-    description: 'QA found the pull request does not meet its acceptance criteria'
+  - name: "qa:approved"
+    color: "0e8a16"
+    description: "QA verified this against the acceptance criteria and it passed"
+  - name: "qa:rejected"
+    color: "b60205"
+    description: "QA found the pull request does not meet its acceptance criteria"
 
 kind:
-  - name: 'kind:defect'
-    color: 'd73a4a'
-    description: 'Raised by QA - behaviour does not match the spec'
-  - name: 'kind:spec-gap'
-    color: 'd876e3'
-    description: 'The specification is ambiguous or incomplete'
-  - name: 'kind:chore'
-    color: 'ededed'
-    description: 'Tooling, dependencies or housekeeping'
+  - name: "kind:defect"
+    color: "d73a4a"
+    description: "Raised by QA - behaviour does not match the spec"
+  - name: "kind:spec-gap"
+    color: "d876e3"
+    description: "The specification is ambiguous or incomplete"
+  - name: "kind:chore"
+    color: "ededed"
+    description: "Tooling, dependencies or housekeeping"

@@ -9,3 +9,5 @@ coverage
 pnpm-lock.yaml
 package-lock.json
 *.min.js
+
+.sdlc/labels.yml
