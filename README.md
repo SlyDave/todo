@@ -25,12 +25,12 @@ npm run dev
 
 Useful scripts:
 
-| Script | Purpose |
-| --- | --- |
-| `npm run dev` | Local development server |
-| `npm run build` | Static generate for GitHub Pages |
-| `npm run lint` / `format:check` / `typecheck` / `test` / `audit` | Quality gate |
-| `npm run smoke` | Smoke-check static output after build |
+| Script                                                           | Purpose                               |
+| ---------------------------------------------------------------- | ------------------------------------- |
+| `npm run dev`                                                    | Local development server              |
+| `npm run build`                                                  | Static generate for GitHub Pages      |
+| `npm run lint` / `format:check` / `typecheck` / `test` / `audit` | Quality gate                          |
+| `npm run smoke`                                                  | Smoke-check static output after build |
 
 ## CI/CD
 

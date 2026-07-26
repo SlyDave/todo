@@ -15,11 +15,7 @@
   },
   "ownership": {
     "mode": "monolith",
-    "backend": [
-      "app/composables/**",
-      "app/utils/**",
-      "app/types/**"
-    ],
+    "backend": ["app/composables/**", "app/utils/**", "app/types/**", "tests/unit/**"],
     "frontend": [
       "app/components/**",
       "app/pages/**",
@@ -30,24 +26,11 @@
       "app/app.config.ts",
       "public/**"
     ],
-    "qa": [
-      "tests/**",
-      "e2e/**",
-      "playwright.config.*"
-    ]
+    "qa": ["e2e/**", "tests/e2e/**", "playwright.config.*"]
   },
   "tooling": {
     "formatCommand": "npx prettier --write",
-    "formatExtensions": [
-      ".ts",
-      ".vue",
-      ".js",
-      ".mjs",
-      ".json",
-      ".md",
-      ".yml",
-      ".css"
-    ],
+    "formatExtensions": [".ts", ".vue", ".js", ".mjs", ".json", ".md", ".yml", ".css"],
     "checks": {
       "format": "npm run format:check",
       "lint": "npm run lint",
