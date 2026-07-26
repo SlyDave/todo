@@ -13,7 +13,7 @@ Hosted at [tasks.slydave.com](https://tasks.slydave.com).
 
 ## Local development
 
-Prerequisites: Node 18+, npm, and a Font Awesome Pro package token.
+Prerequisites: Node 22+, npm 12+, and a Font Awesome Pro package token.
 
 ```powershell
 Copy-Item .env.example .env
@@ -34,7 +34,7 @@ Useful scripts:
 
 ## CI/CD
 
-GitHub Actions builds and deploys on `main`. Configure repository secret `FONTAWESOME_PACKAGE_TOKEN` so `npm ci` can install Pro packages.
+GitHub Actions builds and deploys on `main` using **npm 12** and the repository secret `FONTAWESOME_PACKAGE_TOKEN` (required for Pro package installs). Do not commit tokens; local use stays in gitignored `.env`.
 
 ## AI team workflow
 
