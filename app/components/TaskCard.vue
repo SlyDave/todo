@@ -86,11 +86,7 @@ const priorityLabel = computed(() => PRIORITY_LABEL[props.task.priority])
           data-testid="task-description"
         />
 
-        <p
-          v-if="dueDateLabel"
-          class="mt-2 text-xs text-muted"
-          :data-testid="`task-due-${task.id}`"
-        >
+        <p v-if="dueDateLabel" class="mt-2 text-xs text-muted" :data-testid="`task-due-${task.id}`">
           Due {{ dueDateLabel }}
         </p>
       </div>
