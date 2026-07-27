@@ -32,9 +32,10 @@ function replaceTask(tasks: Task[], index: number, updated: Task): Task[] {
 function record(
   kind: Parameters<typeof createActivityEvent>[0],
   taskId: string,
-  options: TaskMutationOptions
+  options: TaskMutationOptions,
+  toState?: TaskState
 ): void {
-  appendActivity(createActivityEvent(kind, taskId, options.now), options.storage)
+  appendActivity(createActivityEvent(kind, taskId, options.now, toState), options.storage)
 }
 
 /**
@@ -73,7 +74,7 @@ export function useTaskStorage() {
         return current
       }
       saveTasks(replaceTask(tasks, index, updated), options.storage)
-      record('changeState', updated.id, options)
+      record('changeState', updated.id, options, state)
       return updated
     },
     updateDetails: (

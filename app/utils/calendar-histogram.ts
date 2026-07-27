@@ -1,4 +1,10 @@
-import type { ActivityEvent, HistogramIntensity, MonthDayCell, MonthHistogram } from '../types/task'
+import type {
+  ActivityEvent,
+  CalendarViewMode,
+  HistogramIntensity,
+  MonthDayCell,
+  MonthHistogram
+} from '../types/task'
 
 export class CalendarHistogramError extends Error {
   constructor(message: string) {
@@ -38,14 +44,27 @@ export function activityDateKey(at: string): string | null {
   return new Date(ms).toISOString().slice(0, 10)
 }
 
+/** True when the event contributes to the given calendar view mode. */
+export function eventMatchesMode(event: ActivityEvent, mode: CalendarViewMode): boolean {
+  switch (mode) {
+    case 'activity':
+      return true
+    case 'created':
+      return event.kind === 'create'
+    case 'completed':
+      return event.kind === 'changeState' && event.toState === 'complete'
+  }
+}
+
 /**
- * Counts activity events per day for the given UTC year/month.
- * Events outside the month or with unparseable timestamps are ignored.
+ * Counts matching activity events per day for the given UTC year/month and mode.
+ * Events outside the month, for other modes, or with unparseable timestamps are ignored.
  */
 export function countActivityByDay(
   events: readonly ActivityEvent[],
   year: number,
-  month: number
+  month: number,
+  mode: CalendarViewMode = 'activity'
 ): number[] {
   assertYearMonth(year, month)
   const length = daysInMonth(year, month)
@@ -53,6 +72,9 @@ export function countActivityByDay(
   const prefix = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-`
 
   for (const event of events) {
+    if (!eventMatchesMode(event, mode)) {
+      continue
+    }
     const key = activityDateKey(event.at)
     if (key === null || !key.startsWith(prefix)) {
       continue
@@ -73,17 +95,18 @@ export function countActivityByDay(
 }
 
 /**
- * Builds a navigable month histogram from activity events.
- * Intensity is scaled to the peak day in that month; an empty month yields
- * stage `0` for every day but still returns a full day list.
+ * Builds a navigable month histogram from activity events for a view mode.
+ * Intensity is scaled to the peak day in that month for the selected mode;
+ * an empty month yields stage `0` for every day but still returns a full day list.
  */
 export function buildMonthHistogram(
   events: readonly ActivityEvent[],
   year: number,
-  month: number
+  month: number,
+  mode: CalendarViewMode = 'activity'
 ): MonthHistogram {
   assertYearMonth(year, month)
-  const counts = countActivityByDay(events, year, month)
+  const counts = countActivityByDay(events, year, month, mode)
   const peak = counts.reduce((max, count) => Math.max(max, count), 0)
   const days: MonthDayCell[] = counts.map((count, index) => {
     const day = index + 1
@@ -97,7 +120,7 @@ export function buildMonthHistogram(
     }
   })
 
-  return { year, month, peak, days }
+  return { year, month, mode, peak, days }
 }
 
 function assertYearMonth(year: number, month: number): void {

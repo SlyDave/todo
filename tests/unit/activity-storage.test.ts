@@ -99,7 +99,9 @@ describe('activity-storage', () => {
 
   it('isActivityEvent rejects incomplete objects', () => {
     expect(isActivityEvent(makeEvent())).toBe(true)
+    expect(isActivityEvent(makeEvent({ kind: 'changeState', toState: 'complete' }))).toBe(true)
     expect(isActivityEvent({ at: 'x' })).toBe(false)
     expect(isActivityEvent(null)).toBe(false)
+    expect(isActivityEvent(makeEvent({ toState: 'explode' as never }))).toBe(false)
   })
 })

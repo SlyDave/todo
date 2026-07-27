@@ -1,4 +1,4 @@
-import type { ActivityEvent, ActivityKind } from '../types/task'
+import type { ActivityEvent, ActivityKind, TaskState } from '../types/task'
 
 /** Versioned localStorage key for calendar activity events. */
 export const ACTIVITY_STORAGE_KEY = 'todo.activity.v1'
@@ -16,6 +16,8 @@ const ACTIVITY_KINDS: readonly ActivityKind[] = [
   'softDelete'
 ]
 
+const TASK_STATES: readonly TaskState[] = ['todo', 'inProgress', 'complete']
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -24,19 +26,31 @@ function isActivityKind(value: unknown): value is ActivityKind {
   return typeof value === 'string' && (ACTIVITY_KINDS as readonly string[]).includes(value)
 }
 
+function isTaskState(value: unknown): value is TaskState {
+  return typeof value === 'string' && (TASK_STATES as readonly string[]).includes(value)
+}
+
 /** Returns true when value matches a well-formed ActivityEvent. */
 export function isActivityEvent(value: unknown): value is ActivityEvent {
   if (!isRecord(value)) {
     return false
   }
 
-  return (
-    typeof value.at === 'string' &&
-    value.at.length > 0 &&
-    isActivityKind(value.kind) &&
-    typeof value.taskId === 'string' &&
-    value.taskId.length > 0
-  )
+  if (
+    typeof value.at !== 'string' ||
+    value.at.length === 0 ||
+    !isActivityKind(value.kind) ||
+    typeof value.taskId !== 'string' ||
+    value.taskId.length === 0
+  ) {
+    return false
+  }
+
+  if (value.toState !== undefined && !isTaskState(value.toState)) {
+    return false
+  }
+
+  return true
 }
 
 function readStorage(storage?: Storage): Storage | null {

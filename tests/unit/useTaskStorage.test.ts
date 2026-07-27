@@ -271,7 +271,30 @@ describe('useTaskStorage domain operations', () => {
     expect(api.listActivity(storage)).toEqual([
       { at: '2026-07-27T08:00:00.000Z', kind: 'create', taskId: 'act-1' },
       { at: '2026-07-27T09:00:00.000Z', kind: 'editDetails', taskId: 'act-1' },
-      { at: '2026-07-27T10:00:00.000Z', kind: 'changeState', taskId: 'act-1' }
+      {
+        at: '2026-07-27T10:00:00.000Z',
+        kind: 'changeState',
+        taskId: 'act-1',
+        toState: 'inProgress'
+      }
+    ])
+  })
+
+  it('records the target column on changeState activity for completed mode', () => {
+    api.create(
+      { description: 'Finish me' },
+      { now: '2026-07-27T08:00:00.000Z', id: 'done-1', storage }
+    )
+    api.changeState('done-1', 'complete', { now: '2026-07-27T12:00:00.000Z', storage })
+
+    expect(api.listActivity(storage)).toEqual([
+      { at: '2026-07-27T08:00:00.000Z', kind: 'create', taskId: 'done-1' },
+      {
+        at: '2026-07-27T12:00:00.000Z',
+        kind: 'changeState',
+        taskId: 'done-1',
+        toState: 'complete'
+      }
     ])
   })
 })

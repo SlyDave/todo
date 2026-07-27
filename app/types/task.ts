@@ -30,6 +30,8 @@ export interface ActivityEvent {
   at: string
   kind: ActivityKind
   taskId: string
+  /** Target column when `kind` is `changeState`; omitted for other kinds. */
+  toState?: TaskState
 }
 
 /**
@@ -56,7 +58,9 @@ export interface MonthHistogram {
   year: number
   /** Calendar month, 1–12. */
   month: number
-  /** Highest daily count in the month; `0` when empty. */
+  /** View mode used to derive counts and peak. */
+  mode: CalendarViewMode
+  /** Highest daily count in the month for `mode`; `0` when empty. */
   peak: number
   /** Contiguous days 1…N for the month (always navigable, even when empty). */
   days: MonthDayCell[]
