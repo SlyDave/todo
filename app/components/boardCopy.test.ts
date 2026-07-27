@@ -5,11 +5,14 @@ import {
   BOARD_COLUMN_EMPTY,
   BOARD_REGION_LABEL,
   BOARD_SAVE_ERROR,
+  COLUMN_CLEAR_MANUAL_ORDER_LABEL,
+  COLUMN_MANUAL_ORDER_BADGE,
   DOCUMENT_DESCRIPTION,
   DOCUMENT_TITLE,
   PAGE_HEADING,
   PAGE_INTRO,
-  boardColumnCountLabel
+  boardColumnCountLabel,
+  columnClearManualOrderAriaLabel
 } from './boardCopy'
 import { NEEDS_ACTIONED_WARNING } from './taskNeedsActioned'
 import {
@@ -38,6 +41,9 @@ describe('boardCopy', () => {
     expect(PAGE_INTRO).toContain('Complete')
     expect(DOCUMENT_TITLE).toBe('To-Do')
     expect(DOCUMENT_DESCRIPTION).toContain('to-do')
+    expect(COLUMN_MANUAL_ORDER_BADGE).toBe('Manual order')
+    expect(COLUMN_CLEAR_MANUAL_ORDER_LABEL).toBe('Clear manual order')
+    expect(columnClearManualOrderAriaLabel('ToDo')).toBe('Clear manual order for ToDo')
   })
 
   it('formats column metric counts in British English', () => {
@@ -77,6 +83,9 @@ describe('boardCopy', () => {
       DOCUMENT_TITLE,
       DOCUMENT_DESCRIPTION,
       boardColumnCountLabel(2),
+      COLUMN_MANUAL_ORDER_BADGE,
+      COLUMN_CLEAR_MANUAL_ORDER_LABEL,
+      columnClearManualOrderAriaLabel('InProgress'),
       NEEDS_ACTIONED_WARNING,
       SOFT_DELETE_CONFIRM_TITLE,
       TASK_RECOVERY_EMPTY_MESSAGE

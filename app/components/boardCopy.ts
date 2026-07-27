@@ -26,3 +26,14 @@ export const DOCUMENT_DESCRIPTION = 'Personal to-do board — ToDo, InProgress, 
 export function boardColumnCountLabel(count: number): string {
   return count === 1 ? '1 task' : `${String(count)} tasks`
 }
+
+/** Visible label when a column is following manual ranks instead of sort. */
+export const COLUMN_MANUAL_ORDER_BADGE = 'Manual order'
+
+/** Control that clears a column's manual-order override (British English). */
+export const COLUMN_CLEAR_MANUAL_ORDER_LABEL = 'Clear manual order'
+
+/** Accessible name for the clear-manual-order control. */
+export function columnClearManualOrderAriaLabel(columnHeading: string): string {
+  return `Clear manual order for ${columnHeading}`
+}

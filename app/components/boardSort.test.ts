@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SortMode, Task } from '../types/task'
-import { sortTasks } from '../utils/task-sort'
+import { orderTasksForColumn } from '../utils/task-manual-order'
 import type { TasksByColumn } from './boardColumns'
 import {
   DEFAULT_SORT_MODE,
@@ -105,16 +105,64 @@ describe('sortColumnsByMode', () => {
     ['dueDate', ['a', 'e', 'b', 'c', 'd']],
     ['priority', ['a', 'd', 'e', 'b', 'c']]
   ] as const satisfies readonly (readonly [SortMode, readonly string[]])[])(
-    '%s: each column uses shared sortTasks helpers',
+    '%s: each column without override uses orderTasksForColumn / sort',
     (mode, expectedTodoIds) => {
       const sorted = sortColumnsByMode(columns, mode)
 
       expect(ids(sorted.todo)).toEqual(expectedTodoIds)
-      expect(ids(sorted.todo)).toEqual(ids(sortTasks(columns.todo, mode)))
-      expect(ids(sorted.inProgress)).toEqual(ids(sortTasks(columns.inProgress, mode)))
-      expect(ids(sorted.complete)).toEqual(ids(sortTasks(columns.complete, mode)))
+      expect(ids(sorted.todo)).toEqual(ids(orderTasksForColumn(columns.todo, mode)))
+      expect(ids(sorted.inProgress)).toEqual(ids(orderTasksForColumn(columns.inProgress, mode)))
+      expect(ids(sorted.complete)).toEqual(ids(orderTasksForColumn(columns.complete, mode)))
     }
   )
+
+  it('keeps manual ranks in a column with override while others follow sort', () => {
+    const withOverride: TasksByColumn = {
+      todo: [
+        makeTask({
+          id: 'z',
+          state: 'todo',
+          title: 'Zebra',
+          priority: 'low',
+          dueDate: '2026-09-01',
+          manualOrder: 0
+        }),
+        makeTask({
+          id: 'a',
+          state: 'todo',
+          title: 'Alpha',
+          priority: 'high',
+          dueDate: '2026-08-01',
+          manualOrder: 1
+        })
+      ],
+      inProgress: [
+        makeTask({
+          id: 'ip-late',
+          state: 'inProgress',
+          title: 'Zebra',
+          priority: 'low',
+          dueDate: '2026-09-01'
+        }),
+        makeTask({
+          id: 'ip-early',
+          state: 'inProgress',
+          title: 'Apple',
+          priority: 'high',
+          dueDate: '2026-08-01'
+        })
+      ],
+      complete: []
+    }
+
+    const alphabetical = sortColumnsByMode(withOverride, 'alphabetically')
+    expect(ids(alphabetical.todo)).toEqual(['z', 'a'])
+    expect(ids(alphabetical.inProgress)).toEqual(['ip-early', 'ip-late'])
+
+    const byPriority = sortColumnsByMode(withOverride, 'priority')
+    expect(ids(byPriority.todo)).toEqual(['z', 'a'])
+    expect(ids(byPriority.inProgress)).toEqual(['ip-early', 'ip-late'])
+  })
 
   it('does not mutate the input column arrays', () => {
     const snapshot = columns.todo.map((task) => task.id)

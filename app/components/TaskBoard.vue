@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import type { SortMode, Task, TaskPriority, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
-import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
+import {
+  type BoardColumnChangePayload,
+  resolveColumnDrop,
+  resolveWithinColumnReorder
+} from './boardDrag'
 import {
   COLUMN_ORDER,
   countActiveTasksByColumn,
@@ -20,8 +24,17 @@ import {
 } from './taskRecovery'
 import type { TaskFormPayload } from './TaskForm.vue'
 
-const { load, create, updateDetails, changeState, softDelete, restore, purgeExpired } =
-  useTaskStorage()
+const {
+  load,
+  create,
+  updateDetails,
+  changeState,
+  softDelete,
+  restore,
+  purgeExpired,
+  applyManualOrder,
+  clearManualOrder
+} = useTaskStorage()
 
 const tasks = ref<Task[]>([])
 const columnTasks = reactive<TasksByColumn>({
@@ -124,18 +137,39 @@ function onSubmit(payload: TaskFormPayload): void {
   }
 }
 
-function onColumnChange(state: TaskState, event: BoardDragChangeEvent): void {
-  const action = resolveColumnDrop(state, event)
+function onColumnChange(state: TaskState, payload: BoardColumnChangePayload): void {
+  const action = resolveColumnDrop(state, payload.event)
   if (action !== null) {
     changeState(action.taskId, action.state)
     syncFromStorage()
     return
   }
 
-  // Within-column reorder is deferred (#17); restore storage order.
-  if (event.moved !== undefined) {
-    syncFromStorage()
+  const fullColumnOrder = columnTasks[state].map((task) => task.id)
+  const orderedIds = resolveWithinColumnReorder(
+    payload.event,
+    fullColumnOrder,
+    payload.visibleOrder
+  )
+  if (orderedIds === null) {
+    return
   }
+
+  try {
+    applyManualOrder(state, orderedIds)
+    syncFromStorage()
+  } catch (error) {
+    if (error instanceof TaskValidationError) {
+      syncFromStorage()
+      return
+    }
+    throw error
+  }
+}
+
+function onClearManualOrder(state: TaskState): void {
+  clearManualOrder(state)
+  syncFromStorage()
 }
 
 function openDeleteConfirm(task: Task): void {
@@ -227,6 +261,7 @@ function onRestore(taskId: string): void {
         @edit="openEdit"
         @delete="openDeleteConfirm"
         @change="onColumnChange(state, $event)"
+        @clear-manual-order="onClearManualOrder(state)"
       />
     </div>
 
