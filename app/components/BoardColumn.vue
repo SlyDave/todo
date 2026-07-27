@@ -7,6 +7,10 @@ const props = defineProps<{
   tasks: Task[]
 }>()
 
+const emit = defineEmits<{
+  edit: [task: Task]
+}>()
+
 const heading = computed(() => COLUMN_HEADINGS[props.state])
 </script>
 
@@ -26,7 +30,7 @@ const heading = computed(() => COLUMN_HEADINGS[props.state])
       :aria-label="`${heading} tasks`"
     >
       <li v-for="task in tasks" :key="task.id">
-        <TaskCard :task="task" />
+        <TaskCard :task="task" @edit="emit('edit', $event)" />
       </li>
     </ul>
 
