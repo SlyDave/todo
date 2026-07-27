@@ -53,9 +53,58 @@ describe('createTask', () => {
     })
   })
 
+  it('defaults omitted optional fields and sets created', () => {
+    const now = '2026-07-27T12:30:00.000Z'
+    const task = createTask({ description: 'Only description provided' }, { now, id: 'new-2' })
+
+    expect(task.title).toBe('')
+    expect(task.priority).toBe('medium')
+    expect(task.dueDate).toBeNull()
+    expect(task.backgroundColour).toBeNull()
+    expect(task.state).toBe('todo')
+    expect(task.createdAt).toBe(now)
+  })
+
+  it('accepts optional title, priority, due date, and background colour', () => {
+    const task = createTask(
+      {
+        title: 'Optional title',
+        description: 'Required body',
+        priority: 'high',
+        dueDate: '2026-08-15',
+        backgroundColour: '#112233'
+      },
+      { now: '2026-07-27T13:00:00.000Z', id: 'new-3' }
+    )
+
+    expect(task).toMatchObject({
+      title: 'Optional title',
+      description: 'Required body',
+      priority: 'high',
+      dueDate: '2026-08-15',
+      backgroundColour: '#112233',
+      state: 'todo'
+    })
+  })
+
+  it('stores Markdown description as raw text without converting to HTML', () => {
+    const markdown = '## Heading\n\n- item with **bold** and `code`'
+    const task = createTask(
+      { description: markdown },
+      { now: '2026-07-27T13:30:00.000Z', id: 'md-1' }
+    )
+
+    expect(task.description).toBe(markdown)
+    expect(task.description).not.toContain('<')
+    expect(task.description).not.toContain('</')
+  })
+
   it('rejects a blank description with British English copy', () => {
     expect(() => createTask({ description: '   ' })).toThrow(TaskValidationError)
     expect(() => createTask({ description: '' })).toThrow('Description is required.')
+    expect(() => createTask({ description: undefined as unknown as string })).toThrow(
+      'Description is required.'
+    )
   })
 })
 
@@ -103,17 +152,51 @@ describe('updateTaskDetails', () => {
     const editedAt = '2026-07-27T15:00:00.000Z'
     const updated = updateTaskDetails(
       task,
-      { title: 'Buy oat milk', description: 'One litre', priority: 'high' },
+      {
+        title: 'Buy oat milk',
+        description: 'One litre',
+        priority: 'high',
+        dueDate: '2026-09-01',
+        backgroundColour: '#ffee00'
+      },
       editedAt
     )
 
     expect(updated.title).toBe('Buy oat milk')
     expect(updated.description).toBe('One litre')
     expect(updated.priority).toBe('high')
+    expect(updated.dueDate).toBe('2026-09-01')
+    expect(updated.backgroundColour).toBe('#ffee00')
     expect(updated.detailsModifiedAt).toBe(editedAt)
     expect(updated.stateChangedAt).toBe(STATE_MOVED)
     expect(updated.state).toBe('inProgress')
     expect(updated.createdAt).toBe(CREATED)
+  })
+
+  it('can clear optional due date and background colour without touching state timestamps', () => {
+    const task = seedTask({
+      stateChangedAt: STATE_MOVED,
+      detailsModifiedAt: DETAILS_EDITED
+    })
+    const editedAt = '2026-07-27T16:00:00.000Z'
+    const updated = updateTaskDetails(task, { dueDate: null, backgroundColour: null }, editedAt)
+
+    expect(updated.dueDate).toBeNull()
+    expect(updated.backgroundColour).toBeNull()
+    expect(updated.detailsModifiedAt).toBe(editedAt)
+    expect(updated.stateChangedAt).toBe(STATE_MOVED)
+  })
+
+  it('persists edited Markdown description as raw text', () => {
+    const markdown = 'Edit with *emphasis* and a [link](https://example.com)'
+    const updated = updateTaskDetails(
+      seedTask({ stateChangedAt: STATE_MOVED }),
+      { description: markdown },
+      '2026-07-27T17:00:00.000Z'
+    )
+
+    expect(updated.description).toBe(markdown)
+    expect(updated.stateChangedAt).toBe(STATE_MOVED)
   })
 
   it('rejects clearing the description', () => {
