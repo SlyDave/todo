@@ -28,3 +28,41 @@ Pure helpers in `app/utils/priority-filter.ts` for story #16 card visibility:
 - `filterTasksByPriority(tasks, selectedPriorities)` — returns tasks whose `priority` is in the selected set (array or `Set`), preserving input order.
 - Empty selection → `[]`. Full selection → every task returned.
 - Does not interpret soft-delete, column state, or metrics; callers pass the list to filter and own column counts (filter only hides cards).
+
+## Sort modes (`app/utils/task-sort.ts`)
+
+Frontend board columns consume these pure helpers. Manual order override is out
+of scope here (story #17).
+
+### Types
+
+`SortMode` is defined in `app/types/task.ts`:
+
+```ts
+type SortMode = 'default' | 'alphabetically' | 'dueDate' | 'priority'
+```
+
+### Exports
+
+| Export         | Signature                                            | Behaviour                                             |
+| -------------- | ---------------------------------------------------- | ----------------------------------------------------- |
+| `compareTasks` | `(a: Task, b: Task, mode: SortMode) => number`       | Comparator for the mode; negative if `a` before `b`   |
+| `sortTasks`    | `(tasks: readonly Task[], mode: SortMode) => Task[]` | Returns a **new** sorted array; does not mutate input |
+
+### Key chains
+
+| Mode             | Primary  | Then     | Then     |
+| ---------------- | -------- | -------- | -------- |
+| `default`        | due date | priority | title    |
+| `dueDate`        | due date | priority | title    |
+| `alphabetically` | title    | due date | priority |
+| `priority`       | priority | due date | title    |
+
+`default` and `dueDate` share the same key chain.
+
+### Tie-break rules
+
+- **Due date:** ascending (earliest first). `null` sorts after any dated task.
+- **Priority:** `high` → `medium` → `low`.
+- **Title:** case-insensitive `en-GB` (`localeCompare` with `sensitivity: 'base'`). Empty titles sort before non-empty (natural string order); covered by unit tests.
+- **Final:** `id` ascending for a total order when all mode keys match.
