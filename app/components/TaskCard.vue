@@ -7,6 +7,14 @@ import {
 } from './taskNeedsActioned'
 import { PRIORITY_ICON, PRIORITY_LABEL } from './taskPriority'
 import { renderTaskMarkdown } from './taskMarkdown'
+import {
+  TASK_CARD_DELETE_ICON,
+  TASK_CARD_DELETE_LABEL,
+  TASK_CARD_EDIT_ICON,
+  TASK_CARD_EDIT_LABEL,
+  taskCardDeleteAriaLabel,
+  taskCardEditAriaLabel
+} from './taskCardActions'
 
 const props = defineProps<{
   task: Task
@@ -59,6 +67,9 @@ const dueDateLabel = computed(() => {
 const priorityIcon = computed(() => PRIORITY_ICON[props.task.priority])
 const priorityLabel = computed(() => PRIORITY_LABEL[props.task.priority])
 
+const editAriaLabel = computed(() => taskCardEditAriaLabel(heading.value))
+const deleteAriaLabel = computed(() => taskCardDeleteAriaLabel(heading.value))
+
 const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
 </script>
 
@@ -101,28 +112,34 @@ const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
       </div>
 
       <div class="flex shrink-0 items-center gap-1">
-        <UButton
-          type="button"
-          color="neutral"
-          variant="ghost"
-          size="xs"
-          :aria-label="heading ? `Edit ${heading}` : 'Edit task'"
-          :data-testid="`task-edit-${task.id}`"
-          @click="emit('edit', task)"
-        >
-          Edit
-        </UButton>
-        <UButton
-          type="button"
-          color="error"
-          variant="ghost"
-          size="xs"
-          :aria-label="heading ? `Soft-delete ${heading}` : 'Soft-delete task'"
-          :data-testid="`task-delete-${task.id}`"
-          @click="emit('delete', task)"
-        >
-          Delete
-        </UButton>
+        <UTooltip :text="TASK_CARD_EDIT_LABEL">
+          <UButton
+            type="button"
+            color="neutral"
+            variant="ghost"
+            size="xs"
+            square
+            :aria-label="editAriaLabel"
+            :data-testid="`task-edit-${task.id}`"
+            @click="emit('edit', task)"
+          >
+            <FontAwesomeIcon :icon="TASK_CARD_EDIT_ICON" aria-hidden="true" />
+          </UButton>
+        </UTooltip>
+        <UTooltip :text="TASK_CARD_DELETE_LABEL">
+          <UButton
+            type="button"
+            color="error"
+            variant="ghost"
+            size="xs"
+            square
+            :aria-label="deleteAriaLabel"
+            :data-testid="`task-delete-${task.id}`"
+            @click="emit('delete', task)"
+          >
+            <FontAwesomeIcon :icon="TASK_CARD_DELETE_ICON" aria-hidden="true" />
+          </UButton>
+        </UTooltip>
       </div>
     </div>
 
