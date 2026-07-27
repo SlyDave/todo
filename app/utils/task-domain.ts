@@ -68,13 +68,18 @@ export function isRecoverable(task: Task, now?: string): boolean {
 export function createActivityEvent(
   kind: ActivityKind,
   taskId: string,
-  now?: string
+  now?: string,
+  toState?: TaskState
 ): ActivityEvent {
-  return {
+  const event: ActivityEvent = {
     at: resolveNow(now),
     kind,
     taskId
   }
+  if (toState !== undefined) {
+    event.toState = toState
+  }
+  return event
 }
 
 /**

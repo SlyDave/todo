@@ -1,17 +1,27 @@
 import { describe, expect, it } from 'vitest'
-import type { ActivityEvent } from '../../app/types/task'
+import type { ActivityEvent, ActivityKind } from '../../app/types/task'
 import {
   activityDateKey,
   buildMonthHistogram,
   countActivityByDay,
   daysInMonth,
+  eventMatchesMode,
   intensityStage
 } from '../../app/utils/calendar-histogram'
 import { useCalendarHistogram } from '../../app/composables/useCalendarHistogram'
 import { ACTIVITY_STORAGE_KEY, serializeActivity } from '../../app/utils/activity-storage'
 
-function event(at: string, taskId = 't1'): ActivityEvent {
-  return { at, kind: 'create', taskId }
+function event(
+  at: string,
+  kind: ActivityKind = 'create',
+  taskId = 't1',
+  toState?: ActivityEvent['toState']
+): ActivityEvent {
+  const base: ActivityEvent = { at, kind, taskId }
+  if (toState !== undefined) {
+    base.toState = toState
+  }
+  return base
 }
 
 function createMemoryStorage(initial: Record<string, string> = {}): Storage {
@@ -51,6 +61,30 @@ describe('calendar-histogram', () => {
     expect(intensityStage(5, 0)).toBe(0)
   })
 
+  it('matches events to calendar view modes', () => {
+    expect(eventMatchesMode(event('2026-07-01T00:00:00.000Z', 'create'), 'activity')).toBe(true)
+    expect(eventMatchesMode(event('2026-07-01T00:00:00.000Z', 'softDelete'), 'activity')).toBe(true)
+    expect(eventMatchesMode(event('2026-07-01T00:00:00.000Z', 'create'), 'created')).toBe(true)
+    expect(eventMatchesMode(event('2026-07-01T00:00:00.000Z', 'editDetails'), 'created')).toBe(
+      false
+    )
+    expect(
+      eventMatchesMode(
+        event('2026-07-01T00:00:00.000Z', 'changeState', 't1', 'complete'),
+        'completed'
+      )
+    ).toBe(true)
+    expect(
+      eventMatchesMode(
+        event('2026-07-01T00:00:00.000Z', 'changeState', 't1', 'inProgress'),
+        'completed'
+      )
+    ).toBe(false)
+    expect(eventMatchesMode(event('2026-07-01T00:00:00.000Z', 'changeState'), 'completed')).toBe(
+      false
+    )
+  })
+
   it('counts activity per day for the viewed month and ignores other months', () => {
     const events = [
       event('2026-07-01T08:00:00.000Z'),
@@ -67,6 +101,44 @@ describe('calendar-histogram', () => {
     expect(counts.reduce((sum, n) => sum + n, 0)).toBe(3)
   })
 
+  it('counts all activity kinds in activity mode including restore and soft-delete', () => {
+    const events = [
+      event('2026-07-03T08:00:00.000Z', 'create'),
+      event('2026-07-03T09:00:00.000Z', 'editDetails'),
+      event('2026-07-03T10:00:00.000Z', 'changeState', 't1', 'inProgress'),
+      event('2026-07-03T11:00:00.000Z', 'softDelete'),
+      event('2026-07-03T12:00:00.000Z', 'restore')
+    ]
+    const counts = countActivityByDay(events, 2026, 7, 'activity')
+    expect(counts[2]).toBe(5)
+  })
+
+  it('counts only creates in created mode', () => {
+    const events = [
+      event('2026-07-04T08:00:00.000Z', 'create', 'a'),
+      event('2026-07-04T09:00:00.000Z', 'create', 'b'),
+      event('2026-07-04T10:00:00.000Z', 'editDetails', 'a'),
+      event('2026-07-04T11:00:00.000Z', 'changeState', 'a', 'complete')
+    ]
+    const counts = countActivityByDay(events, 2026, 7, 'created')
+    expect(counts[3]).toBe(2)
+    expect(counts.reduce((sum, n) => sum + n, 0)).toBe(2)
+  })
+
+  it('counts only transitions to Complete in completed mode', () => {
+    const events = [
+      event('2026-07-05T08:00:00.000Z', 'changeState', 'a', 'complete'),
+      event('2026-07-05T09:00:00.000Z', 'changeState', 'b', 'inProgress'),
+      event('2026-07-05T10:00:00.000Z', 'changeState', 'c', 'todo'),
+      event('2026-07-05T11:00:00.000Z', 'changeState', 'd', 'complete'),
+      event('2026-07-05T12:00:00.000Z', 'create', 'e'),
+      event('2026-07-05T13:00:00.000Z', 'changeState', 'f')
+    ]
+    const counts = countActivityByDay(events, 2026, 7, 'completed')
+    expect(counts[4]).toBe(2)
+    expect(counts.reduce((sum, n) => sum + n, 0)).toBe(2)
+  })
+
   it('builds a full navigable month with intensities scaled to the peak day', () => {
     const events = [
       event('2026-07-01T10:00:00.000Z'),
@@ -80,6 +152,7 @@ describe('calendar-histogram', () => {
     const histogram = buildMonthHistogram(events, 2026, 7)
     expect(histogram.year).toBe(2026)
     expect(histogram.month).toBe(7)
+    expect(histogram.mode).toBe('activity')
     expect(histogram.peak).toBe(4)
     expect(histogram.days).toHaveLength(31)
     expect(histogram.days[0]).toMatchObject({
@@ -94,8 +167,47 @@ describe('calendar-histogram', () => {
     expect(histogram.days.every((cell) => [0, 1, 2, 3, 4].includes(cell.intensity))).toBe(true)
   })
 
+  it('recalculates intensities against the selected mode peak when switching modes', () => {
+    const events = [
+      event('2026-07-01T08:00:00.000Z', 'create', 'a'),
+      event('2026-07-01T09:00:00.000Z', 'create', 'b'),
+      event('2026-07-01T10:00:00.000Z', 'create', 'c'),
+      event('2026-07-01T11:00:00.000Z', 'create', 'd'),
+      event('2026-07-02T08:00:00.000Z', 'editDetails', 'a'),
+      event('2026-07-02T09:00:00.000Z', 'changeState', 'a', 'complete'),
+      event('2026-07-10T08:00:00.000Z', 'changeState', 'b', 'complete'),
+      event('2026-07-10T09:00:00.000Z', 'changeState', 'c', 'complete'),
+      event('2026-07-10T10:00:00.000Z', 'changeState', 'd', 'complete'),
+      event('2026-07-10T11:00:00.000Z', 'changeState', 'e', 'complete')
+    ]
+
+    const activity = buildMonthHistogram(events, 2026, 7, 'activity')
+    expect(activity.mode).toBe('activity')
+    expect(activity.peak).toBe(4)
+    expect(activity.days[0]?.intensity).toBe(4)
+    expect(activity.days[9]?.intensity).toBe(4)
+
+    const created = buildMonthHistogram(events, 2026, 7, 'created')
+    expect(created.mode).toBe('created')
+    expect(created.peak).toBe(4)
+    expect(created.days[0]?.count).toBe(4)
+    expect(created.days[0]?.intensity).toBe(4)
+    expect(created.days[1]?.count).toBe(0)
+    expect(created.days[9]?.count).toBe(0)
+
+    const completed = buildMonthHistogram(events, 2026, 7, 'completed')
+    expect(completed.mode).toBe('completed')
+    expect(completed.peak).toBe(4)
+    expect(completed.days[0]?.count).toBe(0)
+    expect(completed.days[1]?.count).toBe(1)
+    expect(completed.days[1]?.intensity).toBe(1)
+    expect(completed.days[9]?.count).toBe(4)
+    expect(completed.days[9]?.intensity).toBe(4)
+  })
+
   it('returns lowest intensity for every day when the month has no events', () => {
-    const histogram = buildMonthHistogram([], 2026, 2)
+    const histogram = buildMonthHistogram([], 2026, 2, 'completed')
+    expect(histogram.mode).toBe('completed')
     expect(histogram.peak).toBe(0)
     expect(histogram.days).toHaveLength(28)
     expect(histogram.days.every((cell) => cell.count === 0 && cell.intensity === 0)).toBe(true)
@@ -115,7 +227,19 @@ describe('useCalendarHistogram', () => {
     })
     const { forMonth } = useCalendarHistogram()
     const histogram = forMonth(2026, 7, { storage })
+    expect(histogram.mode).toBe('activity')
     expect(histogram.peak).toBe(2)
     expect(histogram.days[4]?.intensity).toBe(4)
+  })
+
+  it('applies the selected mode when building from options', () => {
+    const events = [
+      event('2026-07-08T10:00:00.000Z', 'create'),
+      event('2026-07-08T11:00:00.000Z', 'changeState', 't1', 'complete')
+    ]
+    const { forMonth } = useCalendarHistogram()
+    expect(forMonth(2026, 7, { events, mode: 'created' }).days[7]?.count).toBe(1)
+    expect(forMonth(2026, 7, { events, mode: 'completed' }).days[7]?.count).toBe(1)
+    expect(forMonth(2026, 7, { events, mode: 'activity' }).days[7]?.count).toBe(2)
   })
 })

@@ -331,6 +331,16 @@ describe('createActivityEvent', () => {
     expect(createActivityEvent('softDelete', 't1', at).kind).toBe('softDelete')
     expect(createActivityEvent('restore', 't1', at).kind).toBe('restore')
   })
+
+  it('records toState when provided for changeState', () => {
+    const at = '2026-07-27T20:00:00.000Z'
+    expect(createActivityEvent('changeState', 't1', at, 'complete')).toEqual({
+      at,
+      kind: 'changeState',
+      taskId: 't1',
+      toState: 'complete'
+    })
+  })
 })
 
 describe('changeTaskState soft-delete guard', () => {
