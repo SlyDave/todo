@@ -3,9 +3,10 @@ import type { Task, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
 import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
 import { COLUMN_ORDER, groupActiveTasksByColumn, type TasksByColumn } from './boardColumns'
+import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
 import type { TaskFormPayload } from './TaskForm.vue'
 
-const { load, create, updateDetails, changeState } = useTaskStorage()
+const { load, create, updateDetails, changeState, softDelete } = useTaskStorage()
 
 const tasks = ref<Task[]>([])
 const columnTasks = reactive<TasksByColumn>({
@@ -17,6 +18,14 @@ const formOpen = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
 const editingTask = ref<Task | null>(null)
 const submitError = ref<string | null>(null)
+const deleteConfirmOpen = ref(false)
+const pendingDeleteTask = ref<Task | null>(null)
+
+watch(deleteConfirmOpen, (isOpen) => {
+  if (!isOpen) {
+    pendingDeleteTask.value = null
+  }
+})
 
 function syncFromStorage(): void {
   tasks.value = load()
@@ -88,6 +97,31 @@ function onColumnChange(state: TaskState, event: BoardDragChangeEvent): void {
     syncFromStorage()
   }
 }
+
+function openDeleteConfirm(task: Task): void {
+  pendingDeleteTask.value = task
+  deleteConfirmOpen.value = true
+}
+
+function finishDeleteDialog(confirmed: boolean): void {
+  const taskId = pendingDeleteTask.value?.id ?? null
+  deleteConfirmOpen.value = false
+  // pendingDeleteTask cleared by watch when open closes; use local id for confirm.
+  const idToDelete = resolveSoftDeleteAfterConfirm(confirmed, taskId)
+  if (idToDelete === null) {
+    return
+  }
+  softDelete(idToDelete)
+  syncFromStorage()
+}
+
+function onDeleteCancel(): void {
+  finishDeleteDialog(false)
+}
+
+function onDeleteConfirm(): void {
+  finishDeleteDialog(true)
+}
 </script>
 
 <template>
@@ -110,6 +144,7 @@ function onColumnChange(state: TaskState, event: BoardDragChangeEvent): void {
         v-model="columnTasks[state]"
         :state="state"
         @edit="openEdit"
+        @delete="openDeleteConfirm"
         @change="onColumnChange(state, $event)"
       />
     </div>
@@ -120,6 +155,13 @@ function onColumnChange(state: TaskState, event: BoardDragChangeEvent): void {
       :task="editingTask"
       :submit-error="submitError"
       @submit="onSubmit"
+    />
+
+    <SoftDeleteConfirmDialog
+      v-model:open="deleteConfirmOpen"
+      :task="pendingDeleteTask"
+      @cancel="onDeleteCancel"
+      @confirm="onDeleteConfirm"
     />
   </div>
 </template>

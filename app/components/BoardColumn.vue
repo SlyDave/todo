@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [tasks: Task[]]
   edit: [task: Task]
+  delete: [task: Task]
   change: [event: BoardDragChangeEvent]
 }>()
 
@@ -52,7 +53,11 @@ function onDragChange(event: BoardDragChangeEvent): void {
       >
         <template #item="{ element }">
           <li :data-testid="`board-task-item-${element.id}`">
-            <TaskCard :task="element" @edit="emit('edit', $event)" />
+            <TaskCard
+              :task="element"
+              @edit="emit('edit', $event)"
+              @delete="emit('delete', $event)"
+            />
           </li>
         </template>
       </draggable>

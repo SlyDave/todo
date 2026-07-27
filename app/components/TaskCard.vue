@@ -9,6 +9,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   edit: [task: Task]
+  delete: [task: Task]
 }>()
 
 const descriptionEl = ref<HTMLElement | null>(null)
@@ -91,17 +92,30 @@ const priorityLabel = computed(() => PRIORITY_LABEL[props.task.priority])
         </p>
       </div>
 
-      <UButton
-        type="button"
-        color="neutral"
-        variant="ghost"
-        size="xs"
-        :aria-label="heading ? `Edit ${heading}` : 'Edit task'"
-        :data-testid="`task-edit-${task.id}`"
-        @click="emit('edit', task)"
-      >
-        Edit
-      </UButton>
+      <div class="flex shrink-0 items-center gap-1">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="ghost"
+          size="xs"
+          :aria-label="heading ? `Edit ${heading}` : 'Edit task'"
+          :data-testid="`task-edit-${task.id}`"
+          @click="emit('edit', task)"
+        >
+          Edit
+        </UButton>
+        <UButton
+          type="button"
+          color="error"
+          variant="ghost"
+          size="xs"
+          :aria-label="heading ? `Soft-delete ${heading}` : 'Soft-delete task'"
+          :data-testid="`task-delete-${task.id}`"
+          @click="emit('delete', task)"
+        >
+          Delete
+        </UButton>
+      </div>
     </div>
   </article>
 </template>
