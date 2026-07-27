@@ -3,7 +3,7 @@ import type { Task, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
 import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
 import { COLUMN_ORDER, groupActiveTasksByColumn, type TasksByColumn } from './boardColumns'
-import { shouldProceedWithSoftDelete } from './softDeleteConfirm'
+import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
 import type { TaskFormPayload } from './TaskForm.vue'
 
 const { load, create, updateDetails, changeState, softDelete } = useTaskStorage()
@@ -104,13 +104,14 @@ function openDeleteConfirm(task: Task): void {
 }
 
 function finishDeleteDialog(confirmed: boolean): void {
-  const task = pendingDeleteTask.value
+  const taskId = pendingDeleteTask.value?.id ?? null
   deleteConfirmOpen.value = false
-  // pendingDeleteTask cleared by watch when open closes; keep a local copy for confirm.
-  if (!shouldProceedWithSoftDelete(confirmed) || task === null) {
+  // pendingDeleteTask cleared by watch when open closes; use local id for confirm.
+  const idToDelete = resolveSoftDeleteAfterConfirm(confirmed, taskId)
+  if (idToDelete === null) {
     return
   }
-  softDelete(task.id)
+  softDelete(idToDelete)
   syncFromStorage()
 }
 

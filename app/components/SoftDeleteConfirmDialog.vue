@@ -32,7 +32,6 @@ const messageId = 'soft-delete-confirm-description'
 
 function onCancel(): void {
   open.value = false
-  emit('cancel')
 }
 
 function onConfirm(): void {
@@ -54,24 +53,13 @@ watch(open, (isOpen, wasOpen) => {
   <UModal
     v-model:open="open"
     :title="SOFT_DELETE_CONFIRM_TITLE"
-    :description="message"
     :ui="{ content: 'sm:max-w-md' }"
-    aria-labelledby="soft-delete-confirm-title"
     :aria-describedby="messageId"
     data-testid="soft-delete-confirm-modal"
   >
     <template #body>
-      <div
-        class="flex flex-col gap-4"
-        role="group"
-        :aria-labelledby="'soft-delete-confirm-title'"
-        data-testid="soft-delete-confirm-body"
-      >
-        <p
-          :id="messageId"
-          class="text-sm text-default"
-          data-testid="soft-delete-confirm-message"
-        >
+      <div class="flex flex-col gap-4" data-testid="soft-delete-confirm-body">
+        <p :id="messageId" class="text-sm text-default" data-testid="soft-delete-confirm-message">
           {{ message }}
         </p>
 
