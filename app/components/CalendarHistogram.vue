@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import type { HistogramIntensity } from '../types/task'
+import { loadActivity } from '../utils/activity-storage'
 import {
   INTENSITY_SURFACE_CLASS,
   WEEKDAY_HEADERS,
+  activityEventsForPaint,
   buildMonthGrid,
   dayCellAriaLabel,
   formatMonthLabel,
@@ -14,8 +16,17 @@ import {
 const { forMonth } = useCalendarHistogram()
 
 const viewed = ref<YearMonth>(utcYearMonth())
+/** False until mount so SSR/hydration keep an empty intensity grid (#59). */
+const clientReady = ref(false)
 
-const histogram = computed(() => forMonth(viewed.value.year, viewed.value.month))
+onMounted(() => {
+  clientReady.value = true
+})
+
+const histogram = computed(() => {
+  const events = activityEventsForPaint(clientReady.value, loadActivity())
+  return forMonth(viewed.value.year, viewed.value.month, { events })
+})
 
 const monthLabel = computed(() => formatMonthLabel(viewed.value.year, viewed.value.month))
 
