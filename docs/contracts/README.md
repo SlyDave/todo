@@ -107,3 +107,35 @@ not the selected sort mode.
 
 Other columns' ranks are never rewritten by apply/clear/enter. Gaps left when a
 task leaves an override column are left as-is until the next apply/reorder.
+
+## Calendar histograms (`app/utils/calendar-histogram.ts`)
+
+Shared intensity and mode helpers serve both monthly and yearly grids.
+
+### Shared
+
+| Export                                 | Notes                                                     |
+| -------------------------------------- | --------------------------------------------------------- |
+| `HistogramIntensity`                   | `0`…`4`                                                   |
+| `intensityStage(count, peak)`          | Peak day → `4`; empty → `0`                               |
+| `eventMatchesMode` / `activityDateKey` | Unchanged mode semantics (activity / created / completed) |
+
+### Monthly (existing)
+
+`buildMonthHistogram` / `useCalendarHistogram().forMonth` → `MonthHistogram` (`weekday`: Sun=0…Sat=6).
+
+### Yearly (story #72 / task #78)
+
+`buildYearHistogram(events, endDate, mode?)` / `useCalendarHistogram().forYear(options?)` → `YearHistogram`.
+
+| Field                   | Meaning                                                      |
+| ----------------------- | ------------------------------------------------------------ |
+| `endDate`               | Inclusive UTC end (`YYYY-MM-DD`); defaults to today UTC      |
+| `startDate`             | Monday of the first week column                              |
+| `weekCount`             | `52` (`YEAR_HISTOGRAM_WEEK_COUNT`)                           |
+| `days`                  | Column-major, length `weekCount * 7`                         |
+| `YearDayCell.weekRow`   | `0` = Monday … `6` = Sunday (differs from monthly `weekday`) |
+| `YearDayCell.weekIndex` | `0` = oldest … `51` = current week                           |
+| `YearDayCell.inRange`   | `false` for days after `endDate` in the last week (padding)  |
+
+Last column = current week; last in-range cell = `endDate`. Intensity peak is over in-range days in the yearly window only.
