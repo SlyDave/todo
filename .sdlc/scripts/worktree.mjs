@@ -130,9 +130,17 @@ if (command === 'remove') {
   requireRole(role)
 
   const candidates = [join('.worktrees', role), join('.worktrees', `${role}-w`)]
-  const path = candidates.find((candidate) => existsSync(join(repoRoot, candidate)))
+  const porcelain = run('git', ['worktree', 'list', '--porcelain']).stdout || ''
+  const isRegistered = (candidate) => {
+    const normalised = join(repoRoot, candidate).replace(/\\/g, '/')
+    return porcelain.split(/\r?\n/).some((line) => {
+      if (!line.startsWith('worktree ')) return false
+      return line.slice('worktree '.length).replace(/\\/g, '/') === normalised
+    })
+  }
+  const path = candidates.find((candidate) => isRegistered(candidate))
   if (!path) {
-    info(`.worktrees/${role} does not exist; nothing to remove.`)
+    info(`.worktrees/${role} does not exist as a worktree; nothing to remove.`)
     process.exit(0)
   }
 
