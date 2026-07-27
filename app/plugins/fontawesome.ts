@@ -4,13 +4,15 @@ import {
   faChevronDown,
   faChevronUp,
   faMinus,
+  faPen,
+  faTrash,
   faTriangleExclamation
 } from '@fortawesome/pro-solid-svg-icons'
 import '@fortawesome/fontawesome-svg-core/styles.css'
 
 config.autoAddCss = false
 
-library.add(faChevronDown, faChevronUp, faMinus, faTriangleExclamation)
+library.add(faChevronDown, faChevronUp, faMinus, faPen, faTrash, faTriangleExclamation)
 
 export default defineNuxtPlugin((nuxtApp) => {
   nuxtApp.vueApp.component('FontAwesomeIcon', FontAwesomeIcon)
