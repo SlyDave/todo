@@ -1,5 +1,5 @@
 import type { SortMode } from '../types/task'
-import { sortTasks } from '../utils/task-sort'
+import { orderTasksForColumn } from '../utils/task-manual-order'
 import type { TasksByColumn } from './boardColumns'
 
 /** Accessible label for the board sort control. */
@@ -25,13 +25,13 @@ export const SORT_OPTIONS: { value: SortMode; label: string }[] = [
 ]
 
 /**
- * Sorts each column with the shared domain helpers from #46.
- * Manual-order override is out of scope here (story #17).
+ * Orders each column for display: manual ranks when that column has an
+ * active override, otherwise the selected SortMode (#17 / contract).
  */
 export function sortColumnsByMode(columns: TasksByColumn, mode: SortMode): TasksByColumn {
   return {
-    todo: sortTasks(columns.todo, mode),
-    inProgress: sortTasks(columns.inProgress, mode),
-    complete: sortTasks(columns.complete, mode)
+    todo: orderTasksForColumn(columns.todo, mode),
+    inProgress: orderTasksForColumn(columns.inProgress, mode),
+    complete: orderTasksForColumn(columns.complete, mode)
   }
 }

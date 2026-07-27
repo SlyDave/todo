@@ -1,9 +1,20 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable'
 import type { Task, TaskPriority, TaskState } from '../types/task'
+import { columnHasManualOrderOverride } from '../utils/task-manual-order'
 import { ALL_TASK_PRIORITIES, filterTasksByPriority } from '../utils/priority-filter'
-import { BOARD_COLUMN_EMPTY, boardColumnCountLabel } from './boardCopy'
-import { BOARD_DRAG_GROUP, type BoardDragChangeEvent } from './boardDrag'
+import {
+  BOARD_COLUMN_EMPTY,
+  COLUMN_CLEAR_MANUAL_ORDER_LABEL,
+  COLUMN_MANUAL_ORDER_BADGE,
+  boardColumnCountLabel,
+  columnClearManualOrderAriaLabel
+} from './boardCopy'
+import {
+  BOARD_DRAG_GROUP,
+  type BoardColumnChangePayload,
+  type BoardDragChangeEvent
+} from './boardDrag'
 import { COLUMN_HEADINGS } from './boardColumns'
 
 const props = withDefaults(
@@ -24,12 +35,17 @@ const emit = defineEmits<{
   'update:modelValue': [tasks: Task[]]
   edit: [task: Task]
   delete: [task: Task]
-  change: [event: BoardDragChangeEvent]
+  change: [payload: BoardColumnChangePayload]
+  'clear-manual-order': []
 }>()
 
 const heading = computed(() => COLUMN_HEADINGS[props.state])
 
 const countLabel = computed(() => boardColumnCountLabel(props.activeCount))
+
+const hasManualOrder = computed(() => columnHasManualOrderOverride(props.modelValue))
+
+const clearManualOrderAria = computed(() => columnClearManualOrderAriaLabel(heading.value))
 
 /**
  * Local visible list for drag UX. Filtered from the full column list so
@@ -57,7 +73,14 @@ const list = computed({
 })
 
 function onDragChange(event: BoardDragChangeEvent): void {
-  emit('change', event)
+  emit('change', {
+    event,
+    visibleOrder: visibleList.value.map((task) => task.id)
+  })
+}
+
+function onClearManualOrder(): void {
+  emit('clear-manual-order')
 }
 </script>
 
@@ -78,6 +101,27 @@ function onDragChange(event: BoardDragChangeEvent): void {
       >
         {{ activeCount }}
       </p>
+    </div>
+
+    <div
+      v-if="hasManualOrder"
+      class="mt-2 flex flex-wrap items-center justify-between gap-2"
+      data-testid="column-manual-order-controls"
+    >
+      <span class="text-xs text-muted" data-testid="column-manual-order-badge">
+        {{ COLUMN_MANUAL_ORDER_BADGE }}
+      </span>
+      <UButton
+        type="button"
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        :data-testid="`column-clear-manual-order-${state}`"
+        :aria-label="clearManualOrderAria"
+        @click="onClearManualOrder"
+      >
+        {{ COLUMN_CLEAR_MANUAL_ORDER_LABEL }}
+      </UButton>
     </div>
 
     <div class="relative mt-3 min-h-24 flex-1">

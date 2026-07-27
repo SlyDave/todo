@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '../types/task'
-import { BOARD_DRAG_GROUP, resolveColumnDrop } from './boardDrag'
+import {
+  BOARD_DRAG_GROUP,
+  mergeVisibleReorderIntoColumnOrder,
+  resolveColumnDrop,
+  resolveWithinColumnReorder
+} from './boardDrag'
 
 function makeTask(overrides: Partial<Task> & Pick<Task, 'id' | 'state'>): Task {
   return {
@@ -36,7 +41,7 @@ describe('boardDrag', () => {
     expect(resolveColumnDrop('complete', { added: { element: task, newIndex: 1 } })).toBeNull()
   })
 
-  it('ignores within-column moves so order can stay deferred', () => {
+  it('does not treat within-column moves as column drops', () => {
     const task = makeTask({ id: 't1', state: 'todo' })
     expect(
       resolveColumnDrop('todo', { moved: { element: task, oldIndex: 0, newIndex: 2 } })
@@ -50,5 +55,50 @@ describe('boardDrag', () => {
 
   it('ignores an empty change payload (cancelled or invalid drop)', () => {
     expect(resolveColumnDrop('inProgress', {})).toBeNull()
+  })
+})
+
+describe('mergeVisibleReorderIntoColumnOrder', () => {
+  it('returns the visible order when every task is visible', () => {
+    expect(mergeVisibleReorderIntoColumnOrder(['a', 'b', 'c'], ['c', 'a', 'b'])).toEqual([
+      'c',
+      'a',
+      'b'
+    ])
+  })
+
+  it('keeps hidden tasks at their absolute indices while rewriting visible slots', () => {
+    // Full: A B C D E; visible A C E reordered to E A C → E B A D C
+    expect(mergeVisibleReorderIntoColumnOrder(['a', 'b', 'c', 'd', 'e'], ['e', 'a', 'c'])).toEqual([
+      'e',
+      'b',
+      'a',
+      'd',
+      'c'
+    ])
+  })
+})
+
+describe('resolveWithinColumnReorder', () => {
+  it('returns null when the event is not a within-column move', () => {
+    expect(resolveWithinColumnReorder({}, ['a', 'b'], ['a', 'b'])).toBeNull()
+    expect(
+      resolveWithinColumnReorder(
+        { added: { element: makeTask({ id: 'x', state: 'todo' }), newIndex: 0 } },
+        ['a'],
+        ['x', 'a']
+      )
+    ).toBeNull()
+  })
+
+  it('merges the post-move visible order into the full column order', () => {
+    const task = makeTask({ id: 'c', state: 'todo' })
+    expect(
+      resolveWithinColumnReorder(
+        { moved: { element: task, oldIndex: 2, newIndex: 0 } },
+        ['a', 'b', 'c', 'd'],
+        ['c', 'a', 'd']
+      )
+    ).toEqual(['c', 'b', 'a', 'd'])
   })
 })
