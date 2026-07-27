@@ -31,7 +31,7 @@ import { themeToggleLabel } from './themeMode'
 
 describe('boardCopy', () => {
   it('exposes British English board chrome', () => {
-    expect(BOARD_ADD_TASK_LABEL).toBe('Add task')
+    expect(BOARD_ADD_TASK_LABEL).toBe('Create task')
     expect(BOARD_REGION_LABEL).toBe('Task board')
     expect(BOARD_COLUMN_EMPTY).toBe('No tasks')
     expect(BOARD_SAVE_ERROR).toContain('Please try again')

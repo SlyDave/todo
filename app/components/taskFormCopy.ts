@@ -16,9 +16,6 @@ export const TASK_FORM_CANCEL_LABEL = 'Cancel'
 /** Title field label (CONTEXT.md). */
 export const TASK_FORM_TITLE_LABEL = 'Title'
 
-/** Title field hint. */
-export const TASK_FORM_TITLE_HINT = 'Optional'
-
 /** Title field placeholder. */
 export const TASK_FORM_TITLE_PLACEHOLDER = 'Short label'
 
@@ -28,32 +25,26 @@ export const TASK_FORM_DESCRIPTION_LABEL = 'Description'
 /** Description field placeholder. */
 export const TASK_FORM_DESCRIPTION_PLACEHOLDER = 'What needs doing? Markdown is supported.'
 
-/** Description field helper text. */
-export const TASK_FORM_DESCRIPTION_HINT = 'Required. You may use Markdown for formatting.'
-
 /** Client-side required-description message. */
 export const TASK_FORM_DESCRIPTION_REQUIRED = 'Description is required.'
 
 /** Priority field label (CONTEXT.md). */
 export const TASK_FORM_PRIORITY_LABEL = 'Priority'
 
-/** Priority field hint. */
-export const TASK_FORM_PRIORITY_HINT = 'Optional — defaults to Medium'
-
 /** Due date field label (CONTEXT.md). */
 export const TASK_FORM_DUE_DATE_LABEL = 'Due date'
 
-/** Due date field hint. */
-export const TASK_FORM_DUE_DATE_HINT = 'Optional'
-
 /**
- * Fieldset legend for optional card colour (CONTEXT.md: Background colour).
+ * Field label for optional card colour (CONTEXT.md: Background colour).
  * Spelling is British English: colour, not color.
  */
-export const TASK_FORM_BACKGROUND_COLOUR_LEGEND = 'Background colour'
+export const TASK_FORM_BACKGROUND_COLOUR_LABEL = 'Background colour'
 
-/** Checkbox label to enable a card background colour. */
-export const TASK_FORM_USE_BACKGROUND_COLOUR = 'Use a background colour'
+/** Select option for no card background colour. */
+export const TASK_FORM_COLOUR_NONE_LABEL = 'None'
+
+/** Select option for a custom card background colour. */
+export const TASK_FORM_COLOUR_CUSTOM_LABEL = 'Custom colour'
 
 /**
  * Colour picker field label.
