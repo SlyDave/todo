@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '../../app/types/task'
 import {
+  SOFT_DELETE_RETENTION_MS,
   TaskValidationError,
   changeTaskState,
+  createActivityEvent,
   createTask,
+  isRecoverable,
+  purgeExpiredSoftDeletes,
+  restoreTask,
+  softDeleteTask,
   updateTaskDetails
 } from '../../app/utils/task-domain'
 
@@ -203,5 +209,133 @@ describe('updateTaskDetails', () => {
     expect(() => updateTaskDetails(seedTask(), { description: ' ' })).toThrow(
       'Description is required.'
     )
+  })
+
+  it('rejects details edits on a soft-deleted task', () => {
+    const deleted = softDeleteTask(seedTask(), '2026-07-27T12:00:00.000Z')
+    expect(() => updateTaskDetails(deleted, { title: 'Nope' })).toThrow('Task is soft-deleted.')
+  })
+})
+
+describe('softDeleteTask and restoreTask', () => {
+  it('soft-deletes an active task without changing column or other fields', () => {
+    const task = seedTask({
+      state: 'inProgress',
+      detailsModifiedAt: DETAILS_EDITED,
+      stateChangedAt: STATE_MOVED,
+      manualOrder: 3
+    })
+    const deletedAt = '2026-07-27T18:00:00.000Z'
+    const deleted = softDeleteTask(task, deletedAt)
+
+    expect(deleted.deletedAt).toBe(deletedAt)
+    expect(deleted.state).toBe('inProgress')
+    expect(deleted.title).toBe(task.title)
+    expect(deleted.description).toBe(task.description)
+    expect(deleted.priority).toBe(task.priority)
+    expect(deleted.dueDate).toBe(task.dueDate)
+    expect(deleted.backgroundColour).toBe(task.backgroundColour)
+    expect(deleted.manualOrder).toBe(3)
+    expect(deleted.detailsModifiedAt).toBe(DETAILS_EDITED)
+    expect(deleted.stateChangedAt).toBe(STATE_MOVED)
+    expect(deleted.createdAt).toBe(CREATED)
+  })
+
+  it('rejects soft-deleting an already soft-deleted task', () => {
+    const deleted = softDeleteTask(seedTask(), '2026-07-27T18:00:00.000Z')
+    expect(() => softDeleteTask(deleted, '2026-07-27T19:00:00.000Z')).toThrow(
+      'Task is soft-deleted.'
+    )
+  })
+
+  it('restores a recoverable task to its prior column with fields intact', () => {
+    const task = seedTask({
+      state: 'complete',
+      detailsModifiedAt: DETAILS_EDITED,
+      stateChangedAt: STATE_MOVED,
+      title: 'Keep me',
+      description: 'Unchanged body',
+      priority: 'high',
+      dueDate: '2026-09-01',
+      backgroundColour: '#112233',
+      manualOrder: 7
+    })
+    const deleted = softDeleteTask(task, '2026-07-27T18:00:00.000Z')
+    const restored = restoreTask(deleted, '2026-08-10T10:00:00.000Z')
+
+    expect(restored.deletedAt).toBeNull()
+    expect(restored.state).toBe('complete')
+    expect(restored.title).toBe('Keep me')
+    expect(restored.description).toBe('Unchanged body')
+    expect(restored.priority).toBe('high')
+    expect(restored.dueDate).toBe('2026-09-01')
+    expect(restored.backgroundColour).toBe('#112233')
+    expect(restored.manualOrder).toBe(7)
+    expect(restored.detailsModifiedAt).toBe(DETAILS_EDITED)
+    expect(restored.stateChangedAt).toBe(STATE_MOVED)
+  })
+
+  it('rejects restoring a task that is not soft-deleted', () => {
+    expect(() => restoreTask(seedTask())).toThrow('Task is not soft-deleted.')
+  })
+
+  it('rejects restoring after the 30-day recovery window', () => {
+    const deletedAt = '2026-06-01T00:00:00.000Z'
+    const deleted = softDeleteTask(seedTask(), deletedAt)
+    const afterWindow = new Date(Date.parse(deletedAt) + SOFT_DELETE_RETENTION_MS + 1).toISOString()
+
+    expect(isRecoverable(deleted, afterWindow)).toBe(false)
+    expect(() => restoreTask(deleted, afterWindow)).toThrow(
+      'Soft-deleted task is no longer recoverable.'
+    )
+  })
+
+  it('still recovers on the last millisecond of the retention window', () => {
+    const deletedAt = '2026-06-01T00:00:00.000Z'
+    const deleted = softDeleteTask(seedTask({ state: 'todo' }), deletedAt)
+    const lastMs = new Date(Date.parse(deletedAt) + SOFT_DELETE_RETENTION_MS).toISOString()
+
+    expect(isRecoverable(deleted, lastMs)).toBe(true)
+    expect(restoreTask(deleted, lastMs).deletedAt).toBeNull()
+  })
+})
+
+describe('purgeExpiredSoftDeletes', () => {
+  it('removes soft-deleted tasks older than 30 days and keeps the rest', () => {
+    const now = '2026-07-27T12:00:00.000Z'
+    const active = seedTask({ id: 'active', deletedAt: null })
+    const recoverable = softDeleteTask(
+      seedTask({ id: 'recoverable', state: 'inProgress' }),
+      '2026-07-10T12:00:00.000Z'
+    )
+    const expiredDeletedAt = new Date(Date.parse(now) - SOFT_DELETE_RETENTION_MS - 1).toISOString()
+    const expired = softDeleteTask(seedTask({ id: 'expired', state: 'complete' }), expiredDeletedAt)
+
+    expect(purgeExpiredSoftDeletes([active, recoverable, expired], now)).toEqual([
+      active,
+      recoverable
+    ])
+  })
+})
+
+describe('createActivityEvent', () => {
+  it('records each calendar activity kind with task id and instant', () => {
+    const at = '2026-07-27T20:00:00.000Z'
+    expect(createActivityEvent('create', 't1', at)).toEqual({
+      at,
+      kind: 'create',
+      taskId: 't1'
+    })
+    expect(createActivityEvent('editDetails', 't1', at).kind).toBe('editDetails')
+    expect(createActivityEvent('changeState', 't1', at).kind).toBe('changeState')
+    expect(createActivityEvent('softDelete', 't1', at).kind).toBe('softDelete')
+    expect(createActivityEvent('restore', 't1', at).kind).toBe('restore')
+  })
+})
+
+describe('changeTaskState soft-delete guard', () => {
+  it('rejects column changes on a soft-deleted task', () => {
+    const deleted = softDeleteTask(seedTask({ state: 'todo' }), '2026-07-27T18:00:00.000Z')
+    expect(() => changeTaskState(deleted, 'complete')).toThrow('Task is soft-deleted.')
   })
 })
