@@ -3,8 +3,22 @@ import type { ActivityEvent, ActivityKind, Task, TaskPriority, TaskState } from 
 /** Soft-deleted tasks remain recoverable for this many days. */
 export const SOFT_DELETE_RETENTION_DAYS = 30
 
+/**
+ * Days in ToDo after which a task needs actioned (stale).
+ * Flagged only when elapsed time is strictly greater than this threshold.
+ */
+export const TODO_NEEDS_ACTIONED_DAYS = 15
+
+/**
+ * Days in InProgress after which a task needs actioned (stale).
+ * Flagged only when elapsed time is strictly greater than this threshold.
+ */
+export const IN_PROGRESS_NEEDS_ACTIONED_DAYS = 3
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 export const SOFT_DELETE_RETENTION_MS = SOFT_DELETE_RETENTION_DAYS * MS_PER_DAY
+export const TODO_NEEDS_ACTIONED_MS = TODO_NEEDS_ACTIONED_DAYS * MS_PER_DAY
+export const IN_PROGRESS_NEEDS_ACTIONED_MS = IN_PROGRESS_NEEDS_ACTIONED_DAYS * MS_PER_DAY
 
 /** Input for creating a new task in the ToDo column. */
 export interface CreateTaskInput {
@@ -62,6 +76,34 @@ export function isRecoverable(task: Task, now?: string): boolean {
   }
 
   return nowMs - deletedMs <= SOFT_DELETE_RETENTION_MS
+}
+
+/**
+ * True when the task needs actioned (stale) based on column and
+ * `stateChangedAt`: ToDo older than 15 days, or InProgress older than 3 days.
+ * Complete and non-stale tasks are never flagged. Comparison is strict
+ * (`>`): exactly N days elapsed is not stale.
+ */
+export function isNeedsActioned(task: Task, now?: string): boolean {
+  if (task.state === 'complete') {
+    return false
+  }
+
+  const changedMs = Date.parse(task.stateChangedAt)
+  const nowMs = Date.parse(resolveNow(now))
+  if (Number.isNaN(changedMs) || Number.isNaN(nowMs)) {
+    return false
+  }
+
+  const elapsedMs = nowMs - changedMs
+  if (task.state === 'todo') {
+    return elapsedMs > TODO_NEEDS_ACTIONED_MS
+  }
+  if (task.state === 'inProgress') {
+    return elapsedMs > IN_PROGRESS_NEEDS_ACTIONED_MS
+  }
+
+  return false
 }
 
 /** Builds a calendar activity event for the given kind and task. */
