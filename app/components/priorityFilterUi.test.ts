@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '../types/task'
 import { ALL_TASK_PRIORITIES, filterTasksByPriority } from '../utils/priority-filter'
+import { countActiveTasksByColumn } from './boardColumns'
 import {
   PRIORITY_FILTER_LEGEND,
   PRIORITY_FILTER_OPTIONS,
@@ -79,5 +80,19 @@ describe('priority filter board wiring', () => {
       'med-1',
       'high-1'
     ])
+  })
+
+  it('keeps active column counts independent of the priority filter', () => {
+    const columnTasks = [
+      makeTask({ id: 'low-1', priority: 'low', state: 'todo' }),
+      makeTask({ id: 'med-1', priority: 'medium', state: 'todo' }),
+      makeTask({ id: 'high-1', priority: 'high', state: 'todo' })
+    ]
+    const selected = togglePrioritySelection(defaultPriorityFilterSelection(), 'medium')
+    const visible = filterTasksByPriority(columnTasks, selected)
+    const counts = countActiveTasksByColumn(columnTasks)
+
+    expect(visible).toHaveLength(2)
+    expect(counts.todo).toBe(3)
   })
 })
