@@ -9,8 +9,5 @@ import { PAGE_HEADING, PAGE_INTRO } from '../components/boardCopy'
     <div class="mt-8">
       <TaskBoard />
     </div>
-    <div class="mt-8">
-      <CalendarHistogram />
-    </div>
   </div>
 </template>

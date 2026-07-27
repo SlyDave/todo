@@ -245,6 +245,8 @@ function onRestore(taskId: string): void {
       </div>
     </div>
 
+    <CalendarHistogram />
+
     <div
       class="grid grid-cols-1 items-start gap-4 md:grid-cols-3"
       data-testid="board-columns"
