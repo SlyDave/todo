@@ -16,6 +16,11 @@ import {
   type BoardDragChangeEvent
 } from './boardDrag'
 import { COLUMN_HEADINGS } from './boardColumns'
+import {
+  BOARD_COLUMN_LIST_CLASS,
+  BOARD_COLUMN_LIST_WRAPPER_CLASS,
+  BOARD_COLUMN_SECTION_CLASS
+} from './boardColumnLayout'
 
 const props = withDefaults(
   defineProps<{
@@ -86,7 +91,7 @@ function onClearManualOrder(): void {
 
 <template>
   <section
-    class="flex min-h-40 flex-col rounded-lg border border-default bg-elevated/50 p-4"
+    :class="BOARD_COLUMN_SECTION_CLASS"
     :data-testid="`board-column-${state}`"
     :aria-labelledby="`column-heading-${state}`"
   >
@@ -124,13 +129,13 @@ function onClearManualOrder(): void {
       </UButton>
     </div>
 
-    <div class="relative mt-3 min-h-24 flex-1">
+    <div :class="BOARD_COLUMN_LIST_WRAPPER_CLASS">
       <draggable
         v-model="list"
         :group="BOARD_DRAG_GROUP"
         item-key="id"
         tag="ul"
-        class="absolute inset-0 flex list-none flex-col gap-2 p-0"
+        :class="BOARD_COLUMN_LIST_CLASS"
         :aria-label="`${heading} tasks`"
         :data-testid="`board-column-list-${state}`"
         @change="onDragChange"
