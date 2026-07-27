@@ -246,7 +246,7 @@ function onRestore(taskId: string): void {
     </div>
 
     <div
-      class="grid grid-cols-1 gap-4 md:grid-cols-3"
+      class="grid grid-cols-1 items-start gap-4 md:grid-cols-3"
       data-testid="board-columns"
       role="region"
       :aria-label="BOARD_REGION_LABEL"
