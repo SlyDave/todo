@@ -3,10 +3,13 @@ import type { ActivityEvent, ActivityKind } from '../../app/types/task'
 import {
   activityDateKey,
   buildMonthHistogram,
+  buildYearHistogram,
   countActivityByDay,
   daysInMonth,
   eventMatchesMode,
-  intensityStage
+  intensityStage,
+  mondayOnOrBefore,
+  YEAR_HISTOGRAM_WEEK_COUNT
 } from '../../app/utils/calendar-histogram'
 import { useCalendarHistogram } from '../../app/composables/useCalendarHistogram'
 import { ACTIVITY_STORAGE_KEY, serializeActivity } from '../../app/utils/activity-storage'
@@ -217,6 +220,106 @@ describe('calendar-histogram', () => {
     expect(activityDateKey('2026-07-26T23:30:00.000Z')).toBe('2026-07-26')
     expect(activityDateKey('bogus')).toBeNull()
   })
+
+  it('aligns Mondays for Monday-first week rows', () => {
+    expect(mondayOnOrBefore('2026-07-27')).toBe('2026-07-27') // Monday
+    expect(mondayOnOrBefore('2026-07-29')).toBe('2026-07-27') // Wednesday
+    expect(mondayOnOrBefore('2026-08-02')).toBe('2026-07-27') // Sunday
+  })
+
+  it('builds a 52-week grid ending today with last column current week and last in-range cell today', () => {
+    const endDate = '2026-07-29' // Wednesday
+    const histogram = buildYearHistogram([], endDate)
+    expect(histogram.weekCount).toBe(YEAR_HISTOGRAM_WEEK_COUNT)
+    expect(histogram.endDate).toBe(endDate)
+    expect(histogram.startDate).toBe('2025-08-04') // Monday 51 weeks before 2026-07-27
+    expect(histogram.days).toHaveLength(YEAR_HISTOGRAM_WEEK_COUNT * 7)
+
+    const lastColumn = histogram.days.filter(
+      (cell) => cell.weekIndex === YEAR_HISTOGRAM_WEEK_COUNT - 1
+    )
+    expect(lastColumn).toHaveLength(7)
+    expect(lastColumn.map((cell) => cell.date)).toEqual([
+      '2026-07-27',
+      '2026-07-28',
+      '2026-07-29',
+      '2026-07-30',
+      '2026-07-31',
+      '2026-08-01',
+      '2026-08-02'
+    ])
+
+    const inRange = histogram.days.filter((cell) => cell.inRange)
+    expect(inRange.at(-1)?.date).toBe(endDate)
+    expect(histogram.days.find((cell) => cell.date === endDate)?.inRange).toBe(true)
+    expect(histogram.days.find((cell) => cell.date === '2026-07-30')?.inRange).toBe(false)
+  })
+
+  it('lays out seven rows Monday through Sunday', () => {
+    const histogram = buildYearHistogram([], '2026-07-29')
+    const firstWeek = histogram.days.filter((cell) => cell.weekIndex === 0)
+    expect(firstWeek.map((cell) => cell.weekRow)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    expect(firstWeek.map((cell) => new Date(`${cell.date}T00:00:00.000Z`).getUTCDay())).toEqual([
+      1, 2, 3, 4, 5, 6, 0
+    ])
+  })
+
+  it('buckets yearly cells with existing activity / created / completed semantics', () => {
+    const events = [
+      event('2026-07-27T08:00:00.000Z', 'create', 'a'),
+      event('2026-07-27T09:00:00.000Z', 'editDetails', 'a'),
+      event('2026-07-28T08:00:00.000Z', 'changeState', 'a', 'complete'),
+      event('2026-07-28T09:00:00.000Z', 'changeState', 'b', 'inProgress'),
+      event('2025-07-01T08:00:00.000Z', 'create', 'old') // outside window
+    ]
+    const endDate = '2026-07-29'
+
+    const activity = buildYearHistogram(events, endDate, 'activity')
+    expect(activity.days.find((cell) => cell.date === '2026-07-27')?.count).toBe(2)
+    expect(activity.days.find((cell) => cell.date === '2026-07-28')?.count).toBe(2)
+
+    const created = buildYearHistogram(events, endDate, 'created')
+    expect(created.days.find((cell) => cell.date === '2026-07-27')?.count).toBe(1)
+    expect(created.days.find((cell) => cell.date === '2026-07-28')?.count).toBe(0)
+
+    const completed = buildYearHistogram(events, endDate, 'completed')
+    expect(completed.days.find((cell) => cell.date === '2026-07-27')?.count).toBe(0)
+    expect(completed.days.find((cell) => cell.date === '2026-07-28')?.count).toBe(1)
+  })
+
+  it('scales yearly intensity to the peak day in the yearly window', () => {
+    const events = [
+      event('2026-07-01T10:00:00.000Z'),
+      event('2026-07-01T11:00:00.000Z'),
+      event('2026-07-01T12:00:00.000Z'),
+      event('2026-07-01T13:00:00.000Z'),
+      event('2026-07-15T10:00:00.000Z'),
+      event('2026-07-15T11:00:00.000Z')
+    ]
+    const histogram = buildYearHistogram(events, '2026-07-29', 'activity')
+    expect(histogram.peak).toBe(4)
+    expect(histogram.days.find((cell) => cell.date === '2026-07-01')).toMatchObject({
+      count: 4,
+      intensity: 4,
+      inRange: true
+    })
+    expect(histogram.days.find((cell) => cell.date === '2026-07-15')).toMatchObject({
+      count: 2,
+      intensity: 2,
+      inRange: true
+    })
+    expect(histogram.days.every((cell) => [0, 1, 2, 3, 4].includes(cell.intensity))).toBe(true)
+  })
+
+  it('returns lowest intensity for every in-range day when the year window has no events', () => {
+    const histogram = buildYearHistogram([], '2026-07-29', 'completed')
+    expect(histogram.peak).toBe(0)
+    expect(
+      histogram.days
+        .filter((cell) => cell.inRange)
+        .every((cell) => cell.count === 0 && cell.intensity === 0)
+    ).toBe(true)
+  })
 })
 
 describe('useCalendarHistogram', () => {
@@ -241,5 +344,35 @@ describe('useCalendarHistogram', () => {
     expect(forMonth(2026, 7, { events, mode: 'created' }).days[7]?.count).toBe(1)
     expect(forMonth(2026, 7, { events, mode: 'completed' }).days[7]?.count).toBe(1)
     expect(forMonth(2026, 7, { events, mode: 'activity' }).days[7]?.count).toBe(2)
+  })
+
+  it('builds a yearly histogram ending on a fixed UTC day from storage', () => {
+    const events = [
+      event('2026-07-29T10:00:00.000Z'),
+      event('2026-07-29T11:00:00.000Z'),
+      event('2026-07-29T12:00:00.000Z')
+    ]
+    const storage = createMemoryStorage({
+      [ACTIVITY_STORAGE_KEY]: serializeActivity(events)
+    })
+    const { forYear } = useCalendarHistogram()
+    const histogram = forYear({ storage, endDate: '2026-07-29' })
+    expect(histogram.mode).toBe('activity')
+    expect(histogram.endDate).toBe('2026-07-29')
+    expect(histogram.weekCount).toBe(52)
+    expect(histogram.days.find((cell) => cell.date === '2026-07-29')).toMatchObject({
+      count: 3,
+      intensity: 4,
+      inRange: true
+    })
+  })
+
+  it('defaults yearly endDate to today UTC from now', () => {
+    const { forYear } = useCalendarHistogram()
+    const histogram = forYear({
+      events: [],
+      now: new Date('2026-07-29T15:00:00.000Z')
+    })
+    expect(histogram.endDate).toBe('2026-07-29')
   })
 })
