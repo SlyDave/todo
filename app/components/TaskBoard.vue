@@ -9,6 +9,7 @@ import {
   type ColumnCounts,
   type TasksByColumn
 } from './boardColumns'
+import { BOARD_ADD_TASK_LABEL, BOARD_REGION_LABEL, BOARD_SAVE_ERROR } from './boardCopy'
 import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
 import {
   TASK_RECOVERY_OPEN_LABEL,
@@ -106,7 +107,7 @@ function onSubmit(payload: TaskFormPayload): void {
       submitError.value = error.message
       return
     }
-    submitError.value = 'Could not save the task. Please try again.'
+    submitError.value = BOARD_SAVE_ERROR
   }
 }
 
@@ -178,7 +179,7 @@ function onRestore(taskId: string): void {
         {{ TASK_RECOVERY_OPEN_LABEL }}
       </UButton>
       <UButton type="button" color="primary" data-testid="board-add-task" @click="openCreate">
-        Add task
+        {{ BOARD_ADD_TASK_LABEL }}
       </UButton>
     </div>
 
@@ -186,7 +187,7 @@ function onRestore(taskId: string): void {
       class="grid grid-cols-1 gap-4 md:grid-cols-3"
       data-testid="board-columns"
       role="region"
-      aria-label="Task board"
+      :aria-label="BOARD_REGION_LABEL"
     >
       <BoardColumn
         v-for="state in COLUMN_ORDER"
