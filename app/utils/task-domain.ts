@@ -15,6 +15,12 @@ export const TODO_NEEDS_ACTIONED_DAYS = 15
  */
 export const IN_PROGRESS_NEEDS_ACTIONED_DAYS = 3
 
+/** Maximum length of a task title (characters). Empty titles are allowed. */
+export const TITLE_MAX_LENGTH = 50
+
+/** Maximum length of a task description (characters). Description is mandatory. */
+export const DESCRIPTION_MAX_LENGTH = 5000
+
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 export const SOFT_DELETE_RETENTION_MS = SOFT_DELETE_RETENTION_DAYS * MS_PER_DAY
 export const TODO_NEEDS_ACTIONED_MS = TODO_NEEDS_ACTIONED_DAYS * MS_PER_DAY
@@ -45,9 +51,23 @@ export class TaskValidationError extends Error {
   }
 }
 
+function assertTitle(title: unknown): asserts title is string {
+  if (typeof title !== 'string') {
+    throw new TaskValidationError('Title must be a string.')
+  }
+  if (title.length > TITLE_MAX_LENGTH) {
+    throw new TaskValidationError(`Title must be at most ${TITLE_MAX_LENGTH} characters.`)
+  }
+}
+
 function assertDescription(description: unknown): asserts description is string {
   if (typeof description !== 'string' || description.trim() === '') {
     throw new TaskValidationError('Description is required.')
+  }
+  if (description.length > DESCRIPTION_MAX_LENGTH) {
+    throw new TaskValidationError(
+      `Description must be at most ${DESCRIPTION_MAX_LENGTH} characters.`
+    )
   }
 }
 
@@ -132,12 +152,14 @@ export function createTask(
   input: CreateTaskInput,
   options: { now?: string; id?: string } = {}
 ): Task {
+  const title = input.title ?? ''
+  assertTitle(title)
   assertDescription(input.description)
   const now = resolveNow(options.now)
 
   return {
     id: options.id ?? crypto.randomUUID(),
-    title: input.title ?? '',
+    title,
     description: input.description,
     priority: input.priority ?? 'medium',
     dueDate: input.dueDate ?? null,
@@ -174,6 +196,9 @@ export function changeTaskState(task: Task, state: TaskState, now?: string): Tas
  */
 export function updateTaskDetails(task: Task, patch: TaskDetailsPatch, now?: string): Task {
   assertActive(task)
+  if (patch.title !== undefined) {
+    assertTitle(patch.title)
+  }
   if (patch.description !== undefined) {
     assertDescription(patch.description)
   }
