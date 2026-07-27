@@ -71,9 +71,7 @@ describe('sortTasks', () => {
 
     for (const mode of ['default', 'alphabetically', 'dueDate', 'priority'] as SortMode[]) {
       const sorted = sortTasks(emptyFirst, mode)
-      const blankIndexes = sorted
-        .map((t, i) => (t.title === '' ? i : -1))
-        .filter((i) => i >= 0)
+      const blankIndexes = sorted.map((t, i) => (t.title === '' ? i : -1)).filter((i) => i >= 0)
       const namedIndex = sorted.findIndex((t) => t.title === 'Zebra')
       expect(blankIndexes.every((i) => i < namedIndex)).toBe(true)
       // two empties stay ordered by id for a total order
