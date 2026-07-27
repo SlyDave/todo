@@ -15,6 +15,7 @@ import {
   taskCardDeleteAriaLabel,
   taskCardEditAriaLabel
 } from './taskCardActions'
+import { taskCardContrastText } from './taskCardContrast'
 
 const props = defineProps<{
   task: Task
@@ -32,6 +33,15 @@ const cardStyle = computed(() => {
     return undefined
   }
   return { backgroundColor: props.task.backgroundColour }
+})
+
+const contrastText = computed(() => taskCardContrastText(props.task.backgroundColour))
+
+const contrastTextStyle = computed(() => {
+  if (contrastText.value === null) {
+    return undefined
+  }
+  return { color: contrastText.value }
 })
 
 const heading = computed(() => {
@@ -96,7 +106,13 @@ const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
           >
             <FontAwesomeIcon :icon="priorityIcon" aria-hidden="true" />
           </span>
-          <h3 v-if="heading" class="truncate text-sm font-medium text-highlighted">
+          <h3
+            v-if="heading"
+            class="truncate text-sm font-medium"
+            :class="contrastText === null ? 'text-highlighted' : undefined"
+            :style="contrastTextStyle"
+            data-testid="task-card-title"
+          >
             {{ heading }}
           </h3>
           <span v-else class="sr-only">{{ priorityLabel }}</span>
@@ -104,7 +120,9 @@ const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
 
         <div
           ref="descriptionEl"
-          class="task-description mt-1 break-words text-sm text-muted"
+          class="task-description mt-1 break-words text-sm"
+          :class="contrastText === null ? 'text-muted' : undefined"
+          :style="contrastTextStyle"
           data-testid="task-description"
         />
 
