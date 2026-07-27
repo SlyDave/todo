@@ -139,3 +139,21 @@ Shared intensity and mode helpers serve both monthly and yearly grids.
 | `YearDayCell.inRange`   | `false` for days after `endDate` in the last week (padding)  |
 
 Last column = current week; last in-range cell = `endDate`. Intensity peak is over in-range days in the yearly window only.
+
+## Title and description limits (`app/utils/task-domain.ts`)
+
+| Constant                 | Value | Notes                                                               |
+| ------------------------ | ----- | ------------------------------------------------------------------- |
+| `TITLE_MAX_LENGTH`       | 50    | Empty title allowed; longer titles rejected on create/update        |
+| `DESCRIPTION_MAX_LENGTH` | 5000  | Mandatory (trim non-empty); longer bodies rejected on create/update |
+
+Enforced by `createTask` and `updateTaskDetails` via `TaskValidationError`.
+
+## Contrast text (`app/utils/contrast-text.ts`)
+
+| Export                                       | Behaviour                                                                                              |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `contrastTextColour(background)`             | Hex `#rgb`/`#rrggbb` → dark or light text from WCAG luminance; `null`/`undefined`/`''`/`none` → `null` |
+| `relativeLuminance(hex)`                     | WCAG 2 relative luminance                                                                              |
+| `CONTRAST_TEXT_DARK` / `CONTRAST_TEXT_LIGHT` | `#111827` / `#f9fafb`                                                                                  |
+| `CONTRAST_LUMINANCE_THRESHOLD`               | `0.179` (at/above → dark text)                                                                         |
