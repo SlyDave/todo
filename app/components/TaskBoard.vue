@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Task, TaskState } from '../types/task'
+import type { Task, TaskPriority, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
 import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
 import {
@@ -10,6 +10,7 @@ import {
   type TasksByColumn
 } from './boardColumns'
 import { BOARD_ADD_TASK_LABEL, BOARD_REGION_LABEL, BOARD_SAVE_ERROR } from './boardCopy'
+import { defaultPriorityFilterSelection } from './priorityFilterUi'
 import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
 import {
   TASK_RECOVERY_OPEN_LABEL,
@@ -33,6 +34,8 @@ const columnCounts = reactive<ColumnCounts>({
   inProgress: 0,
   complete: 0
 })
+/** Session UI only — filter hides cards; column lists stay full for counts. */
+const selectedPriorities = ref<TaskPriority[]>(defaultPriorityFilterSelection())
 const formOpen = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
 const editingTask = ref<Task | null>(null)
@@ -168,19 +171,22 @@ function onRestore(taskId: string): void {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex justify-end gap-2">
-      <UButton
-        type="button"
-        color="neutral"
-        variant="outline"
-        data-testid="board-recover-tasks"
-        @click="openRecovery"
-      >
-        {{ TASK_RECOVERY_OPEN_LABEL }}
-      </UButton>
-      <UButton type="button" color="primary" data-testid="board-add-task" @click="openCreate">
-        {{ BOARD_ADD_TASK_LABEL }}
-      </UButton>
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <PriorityFilter v-model:selected="selectedPriorities" />
+      <div class="flex justify-end gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          data-testid="board-recover-tasks"
+          @click="openRecovery"
+        >
+          {{ TASK_RECOVERY_OPEN_LABEL }}
+        </UButton>
+        <UButton type="button" color="primary" data-testid="board-add-task" @click="openCreate">
+          {{ BOARD_ADD_TASK_LABEL }}
+        </UButton>
+      </div>
     </div>
 
     <div
@@ -195,6 +201,7 @@ function onRestore(taskId: string): void {
         v-model="columnTasks[state]"
         :state="state"
         :active-count="columnCounts[state]"
+        :selected-priorities="selectedPriorities"
         @edit="openEdit"
         @delete="openDeleteConfirm"
         @change="onColumnChange(state, $event)"
