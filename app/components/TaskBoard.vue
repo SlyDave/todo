@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Task, TaskState } from '../types/task'
+import type { SortMode, Task, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
 import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
 import {
@@ -10,6 +10,7 @@ import {
   type TasksByColumn
 } from './boardColumns'
 import { BOARD_ADD_TASK_LABEL, BOARD_REGION_LABEL, BOARD_SAVE_ERROR } from './boardCopy'
+import { DEFAULT_SORT_MODE, SORT_CONTROL_LABEL, SORT_OPTIONS, sortColumnsByMode } from './boardSort'
 import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
 import {
   TASK_RECOVERY_OPEN_LABEL,
@@ -33,6 +34,7 @@ const columnCounts = reactive<ColumnCounts>({
   inProgress: 0,
   complete: 0
 })
+const sortMode = ref<SortMode>(DEFAULT_SORT_MODE)
 const formOpen = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
 const editingTask = ref<Task | null>(null)
@@ -49,17 +51,25 @@ watch(deleteConfirmOpen, (isOpen) => {
   }
 })
 
+function applySortedColumns(grouped: TasksByColumn): void {
+  const sorted = sortColumnsByMode(grouped, sortMode.value)
+  columnTasks.todo = sorted.todo
+  columnTasks.inProgress = sorted.inProgress
+  columnTasks.complete = sorted.complete
+}
+
 function syncFromStorage(): void {
   tasks.value = load()
-  const grouped = groupActiveTasksByColumn(tasks.value)
-  columnTasks.todo = grouped.todo
-  columnTasks.inProgress = grouped.inProgress
-  columnTasks.complete = grouped.complete
+  applySortedColumns(groupActiveTasksByColumn(tasks.value))
   const counts = countActiveTasksByColumn(tasks.value)
   columnCounts.todo = counts.todo
   columnCounts.inProgress = counts.inProgress
   columnCounts.complete = counts.complete
 }
+
+watch(sortMode, () => {
+  applySortedColumns(groupActiveTasksByColumn(tasks.value))
+})
 
 onMounted(() => {
   purgeExpired()
@@ -168,19 +178,31 @@ function onRestore(taskId: string): void {
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex justify-end gap-2">
-      <UButton
-        type="button"
-        color="neutral"
-        variant="outline"
-        data-testid="board-recover-tasks"
-        @click="openRecovery"
-      >
-        {{ TASK_RECOVERY_OPEN_LABEL }}
-      </UButton>
-      <UButton type="button" color="primary" data-testid="board-add-task" @click="openCreate">
-        {{ BOARD_ADD_TASK_LABEL }}
-      </UButton>
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <UFormField :label="SORT_CONTROL_LABEL" name="sortMode" class="min-w-48">
+        <USelect
+          v-model="sortMode"
+          name="sortMode"
+          :items="SORT_OPTIONS"
+          value-key="value"
+          label-key="label"
+          data-testid="board-sort-mode"
+        />
+      </UFormField>
+      <div class="flex gap-2">
+        <UButton
+          type="button"
+          color="neutral"
+          variant="outline"
+          data-testid="board-recover-tasks"
+          @click="openRecovery"
+        >
+          {{ TASK_RECOVERY_OPEN_LABEL }}
+        </UButton>
+        <UButton type="button" color="primary" data-testid="board-add-task" @click="openCreate">
+          {{ BOARD_ADD_TASK_LABEL }}
+        </UButton>
+      </div>
     </div>
 
     <div
