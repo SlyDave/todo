@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '../../app/types/task'
 import {
+  IN_PROGRESS_NEEDS_ACTIONED_MS,
   SOFT_DELETE_RETENTION_MS,
+  TODO_NEEDS_ACTIONED_MS,
   TaskValidationError,
   changeTaskState,
   createActivityEvent,
   createTask,
+  isNeedsActioned,
   isRecoverable,
   purgeExpiredSoftDeletes,
   restoreTask,
@@ -16,6 +19,7 @@ import {
 const CREATED = '2026-07-26T10:00:00.000Z'
 const DETAILS_EDITED = '2026-07-26T11:00:00.000Z'
 const STATE_MOVED = '2026-07-27T09:00:00.000Z'
+const MS_PER_DAY = 24 * 60 * 60 * 1000
 
 function seedTask(overrides: Partial<Task> = {}): Task {
   return {
@@ -347,5 +351,51 @@ describe('changeTaskState soft-delete guard', () => {
   it('rejects column changes on a soft-deleted task', () => {
     const deleted = softDeleteTask(seedTask({ state: 'todo' }), '2026-07-27T18:00:00.000Z')
     expect(() => changeTaskState(deleted, 'complete')).toThrow('Task is soft-deleted.')
+  })
+})
+
+describe('isNeedsActioned', () => {
+  const now = '2026-07-27T12:00:00.000Z'
+  const nowMs = Date.parse(now)
+
+  it('flags a ToDo task when stateChangedAt is older than 15 days', () => {
+    const stateChangedAt = new Date(nowMs - TODO_NEEDS_ACTIONED_MS - 1).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'todo', stateChangedAt }), now)).toBe(true)
+  })
+
+  it('does not flag a ToDo task at exactly 15 days', () => {
+    const stateChangedAt = new Date(nowMs - TODO_NEEDS_ACTIONED_MS).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'todo', stateChangedAt }), now)).toBe(false)
+  })
+
+  it('does not flag a ToDo task younger than 15 days', () => {
+    const stateChangedAt = new Date(nowMs - TODO_NEEDS_ACTIONED_MS + 1).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'todo', stateChangedAt }), now)).toBe(false)
+  })
+
+  it('flags an InProgress task when stateChangedAt is older than 3 days', () => {
+    const stateChangedAt = new Date(nowMs - IN_PROGRESS_NEEDS_ACTIONED_MS - 1).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'inProgress', stateChangedAt }), now)).toBe(true)
+  })
+
+  it('does not flag an InProgress task at exactly 3 days', () => {
+    const stateChangedAt = new Date(nowMs - IN_PROGRESS_NEEDS_ACTIONED_MS).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'inProgress', stateChangedAt }), now)).toBe(false)
+  })
+
+  it('does not flag an InProgress task younger than 3 days', () => {
+    const stateChangedAt = new Date(nowMs - IN_PROGRESS_NEEDS_ACTIONED_MS + 1).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'inProgress', stateChangedAt }), now)).toBe(false)
+  })
+
+  it('never flags Complete tasks regardless of age', () => {
+    const stateChangedAt = new Date(nowMs - TODO_NEEDS_ACTIONED_MS - MS_PER_DAY).toISOString()
+    expect(isNeedsActioned(seedTask({ state: 'complete', stateChangedAt }), now)).toBe(false)
+  })
+
+  it('returns false for invalid stateChangedAt', () => {
+    expect(isNeedsActioned(seedTask({ state: 'todo', stateChangedAt: 'not-a-date' }), now)).toBe(
+      false
+    )
   })
 })
