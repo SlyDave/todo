@@ -1,13 +1,21 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable'
-import type { Task, TaskState } from '../types/task'
+import type { Task, TaskPriority, TaskState } from '../types/task'
+import { ALL_TASK_PRIORITIES, filterTasksByPriority } from '../utils/priority-filter'
 import { BOARD_DRAG_GROUP, type BoardDragChangeEvent } from './boardDrag'
 import { COLUMN_HEADINGS } from './boardColumns'
 
-const props = defineProps<{
-  state: TaskState
-  modelValue: Task[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    state: TaskState
+    modelValue: Task[]
+    /** Priorities whose cards are visible; defaults to all. */
+    selectedPriorities?: readonly TaskPriority[]
+  }>(),
+  {
+    selectedPriorities: () => [...ALL_TASK_PRIORITIES]
+  }
+)
 
 const emit = defineEmits<{
   'update:modelValue': [tasks: Task[]]
@@ -18,10 +26,28 @@ const emit = defineEmits<{
 
 const heading = computed(() => COLUMN_HEADINGS[props.state])
 
+/**
+ * Local visible list for drag UX. Filtered from the full column list so
+ * deselected priorities never write back into the parent column state.
+ */
+const visibleList = ref<Task[]>([])
+
+function refreshVisible(): void {
+  visibleList.value = filterTasksByPriority(props.modelValue, props.selectedPriorities)
+}
+
+watch(
+  () => [props.modelValue, props.selectedPriorities] as const,
+  () => {
+    refreshVisible()
+  },
+  { immediate: true, deep: true }
+)
+
 const list = computed({
-  get: () => props.modelValue,
+  get: () => visibleList.value,
   set: (value: Task[]) => {
-    emit('update:modelValue', value)
+    visibleList.value = value
   }
 })
 
