@@ -7,6 +7,8 @@ import { COLUMN_HEADINGS } from './boardColumns'
 const props = defineProps<{
   state: TaskState
   modelValue: Task[]
+  /** All active tasks in this column — not the filtered-visible subset. */
+  activeCount: number
 }>()
 
 const emit = defineEmits<{
@@ -17,6 +19,11 @@ const emit = defineEmits<{
 }>()
 
 const heading = computed(() => COLUMN_HEADINGS[props.state])
+
+const countLabel = computed(() => {
+  const n = props.activeCount
+  return n === 1 ? '1 task' : `${n} tasks`
+})
 
 const list = computed({
   get: () => props.modelValue,
@@ -36,9 +43,18 @@ function onDragChange(event: BoardDragChangeEvent): void {
     :data-testid="`board-column-${state}`"
     :aria-labelledby="`column-heading-${state}`"
   >
-    <h2 :id="`column-heading-${state}`" class="font-medium text-highlighted">
-      {{ heading }}
-    </h2>
+    <div class="flex items-baseline justify-between gap-2">
+      <h2 :id="`column-heading-${state}`" class="font-medium text-highlighted">
+        {{ heading }}
+      </h2>
+      <p
+        class="text-sm text-muted tabular-nums"
+        :data-testid="`column-count-${state}`"
+        :aria-label="`${heading}: ${countLabel}`"
+      >
+        {{ activeCount }}
+      </p>
+    </div>
 
     <div class="relative mt-3 min-h-24 flex-1">
       <draggable
