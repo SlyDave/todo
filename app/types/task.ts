@@ -31,3 +31,33 @@ export interface ActivityEvent {
   kind: ActivityKind
   taskId: string
 }
+
+/**
+ * Five colour intensity stages for the monthly calendar histogram.
+ * `0` is the lowest (empty / no activity); `4` is the brightest (peak day).
+ */
+export type HistogramIntensity = 0 | 1 | 2 | 3 | 4
+
+/** One calendar day in a monthly histogram, ready for a contributions-style grid. */
+export interface MonthDayCell {
+  /** UTC calendar date as `YYYY-MM-DD`. */
+  date: string
+  /** Day of month, 1–31. */
+  day: number
+  /** Weekday for grid layout: `0` = Sunday … `6` = Saturday (UTC). */
+  weekday: number
+  /** Event count for this day in the active histogram mode. */
+  count: number
+  intensity: HistogramIntensity
+}
+
+/** Full month of histogram cells scaled to that month's peak day. */
+export interface MonthHistogram {
+  year: number
+  /** Calendar month, 1–12. */
+  month: number
+  /** Highest daily count in the month; `0` when empty. */
+  peak: number
+  /** Contiguous days 1…N for the month (always navigable, even when empty). */
+  days: MonthDayCell[]
+}
