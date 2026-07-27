@@ -1,5 +1,10 @@
 <script setup lang="ts">
 import type { Task } from '../types/task'
+import {
+  NEEDS_ACTIONED_ICON,
+  NEEDS_ACTIONED_WARNING,
+  showNeedsActionedIndicator
+} from './taskNeedsActioned'
 import { PRIORITY_ICON, PRIORITY_LABEL } from './taskPriority'
 import { renderTaskMarkdown } from './taskMarkdown'
 
@@ -53,11 +58,14 @@ const dueDateLabel = computed(() => {
 
 const priorityIcon = computed(() => PRIORITY_ICON[props.task.priority])
 const priorityLabel = computed(() => PRIORITY_LABEL[props.task.priority])
+
+const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
 </script>
 
 <template>
   <article
-    class="rounded-md border border-default bg-default p-3"
+    class="relative rounded-md border border-default bg-default p-3"
+    :class="{ 'pb-8': needsActioned }"
     :style="cardStyle"
     :data-testid="`task-card-${task.id}`"
     :data-task-id="task.id"
@@ -117,6 +125,17 @@ const priorityLabel = computed(() => PRIORITY_LABEL[props.task.priority])
         </UButton>
       </div>
     </div>
+
+    <span
+      v-if="needsActioned"
+      class="absolute bottom-2 right-2 inline-flex text-warning"
+      role="img"
+      :aria-label="NEEDS_ACTIONED_WARNING"
+      :title="NEEDS_ACTIONED_WARNING"
+      :data-testid="`task-needs-actioned-${task.id}`"
+    >
+      <FontAwesomeIcon :icon="NEEDS_ACTIONED_ICON" aria-hidden="true" />
+    </span>
   </article>
 </template>
 
