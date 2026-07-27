@@ -4,9 +4,15 @@ import { TaskValidationError } from '../utils/task-domain'
 import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
 import { COLUMN_ORDER, groupActiveTasksByColumn, type TasksByColumn } from './boardColumns'
 import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
+import {
+  TASK_RECOVERY_OPEN_LABEL,
+  listRecoverableTasks,
+  resolveRestoreTaskId
+} from './taskRecovery'
 import type { TaskFormPayload } from './TaskForm.vue'
 
-const { load, create, updateDetails, changeState, softDelete } = useTaskStorage()
+const { load, create, updateDetails, changeState, softDelete, restore, purgeExpired } =
+  useTaskStorage()
 
 const tasks = ref<Task[]>([])
 const columnTasks = reactive<TasksByColumn>({
@@ -20,6 +26,9 @@ const editingTask = ref<Task | null>(null)
 const submitError = ref<string | null>(null)
 const deleteConfirmOpen = ref(false)
 const pendingDeleteTask = ref<Task | null>(null)
+const recoveryOpen = ref(false)
+
+const recoverableTasks = computed(() => listRecoverableTasks(tasks.value))
 
 watch(deleteConfirmOpen, (isOpen) => {
   if (!isOpen) {
@@ -36,6 +45,7 @@ function syncFromStorage(): void {
 }
 
 onMounted(() => {
+  purgeExpired()
   syncFromStorage()
 })
 
@@ -122,11 +132,35 @@ function onDeleteCancel(): void {
 function onDeleteConfirm(): void {
   finishDeleteDialog(true)
 }
+
+function openRecovery(): void {
+  purgeExpired()
+  syncFromStorage()
+  recoveryOpen.value = true
+}
+
+function onRestore(taskId: string): void {
+  const id = resolveRestoreTaskId(taskId)
+  if (id === null) {
+    return
+  }
+  restore(id)
+  syncFromStorage()
+}
 </script>
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex justify-end">
+    <div class="flex justify-end gap-2">
+      <UButton
+        type="button"
+        color="neutral"
+        variant="outline"
+        data-testid="board-recover-tasks"
+        @click="openRecovery"
+      >
+        {{ TASK_RECOVERY_OPEN_LABEL }}
+      </UButton>
       <UButton type="button" color="primary" data-testid="board-add-task" @click="openCreate">
         Add task
       </UButton>
@@ -162,6 +196,12 @@ function onDeleteConfirm(): void {
       :task="pendingDeleteTask"
       @cancel="onDeleteCancel"
       @confirm="onDeleteConfirm"
+    />
+
+    <TaskRecoveryDialog
+      v-model:open="recoveryOpen"
+      :tasks="recoverableTasks"
+      @restore="onRestore"
     />
   </div>
 </template>
