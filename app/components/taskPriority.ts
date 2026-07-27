@@ -7,6 +7,17 @@ export const PRIORITY_ICON: Record<TaskPriority, [prefix: 'fas', name: string]> 
   high: ['fas', 'chevron-up']
 }
 
+/**
+ * Theme semantic text colours for priority icons (Version 2).
+ * high → red (error), medium → green (success), low → blue (info).
+ * These tokens adapt in light and dark mode.
+ */
+export const PRIORITY_ICON_CLASS: Record<TaskPriority, string> = {
+  high: 'text-error',
+  medium: 'text-success',
+  low: 'text-info'
+}
+
 /** Accessible British English labels for priority icons. */
 export const PRIORITY_LABEL: Record<TaskPriority, string> = {
   low: 'Low priority',

@@ -5,7 +5,7 @@ import {
   NEEDS_ACTIONED_WARNING,
   showNeedsActionedIndicator
 } from './taskNeedsActioned'
-import { PRIORITY_ICON, PRIORITY_LABEL } from './taskPriority'
+import { PRIORITY_ICON, PRIORITY_ICON_CLASS, PRIORITY_LABEL } from './taskPriority'
 import { renderTaskMarkdown } from './taskMarkdown'
 
 const props = defineProps<{
@@ -57,6 +57,7 @@ const dueDateLabel = computed(() => {
 })
 
 const priorityIcon = computed(() => PRIORITY_ICON[props.task.priority])
+const priorityIconClass = computed(() => PRIORITY_ICON_CLASS[props.task.priority])
 const priorityLabel = computed(() => PRIORITY_LABEL[props.task.priority])
 
 const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
@@ -76,7 +77,8 @@ const needsActioned = computed(() => showNeedsActionedIndicator(props.task))
       <div class="min-w-0 flex-1">
         <div class="flex items-center gap-2">
           <span
-            class="inline-flex shrink-0 text-muted"
+            class="inline-flex shrink-0"
+            :class="priorityIconClass"
             :data-testid="`task-priority-${task.id}`"
             :aria-label="priorityLabel"
             role="img"
