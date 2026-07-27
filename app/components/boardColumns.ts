@@ -16,6 +16,9 @@ export const COLUMN_HEADINGS: Record<TaskState, string> = {
 
 export type TasksByColumn = Record<TaskState, Task[]>
 
+/** Active-task totals per column (PROJECT.md: filter does not shrink these). */
+export type ColumnCounts = Record<TaskState, number>
+
 /** Soft-deleted tasks are not active on the board. */
 export function isActiveTask(task: Task): boolean {
   return task.deletedAt === null
@@ -40,4 +43,17 @@ export function groupActiveTasksByColumn(tasks: readonly Task[]): TasksByColumn 
   }
 
   return groups
+}
+
+/**
+ * Counts active tasks in each column.
+ * Independent of any priority-filter subset used for card visibility.
+ */
+export function countActiveTasksByColumn(tasks: readonly Task[]): ColumnCounts {
+  const groups = groupActiveTasksByColumn(tasks)
+  return {
+    todo: groups.todo.length,
+    inProgress: groups.inProgress.length,
+    complete: groups.complete.length
+  }
 }

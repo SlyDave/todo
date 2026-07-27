@@ -2,7 +2,13 @@
 import type { Task, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
 import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
-import { COLUMN_ORDER, groupActiveTasksByColumn, type TasksByColumn } from './boardColumns'
+import {
+  COLUMN_ORDER,
+  countActiveTasksByColumn,
+  groupActiveTasksByColumn,
+  type ColumnCounts,
+  type TasksByColumn
+} from './boardColumns'
 import { resolveSoftDeleteAfterConfirm } from './softDeleteConfirm'
 import {
   TASK_RECOVERY_OPEN_LABEL,
@@ -19,6 +25,12 @@ const columnTasks = reactive<TasksByColumn>({
   todo: [],
   inProgress: [],
   complete: []
+})
+/** Active totals per column; never tied to priority-filtered card lists. */
+const columnCounts = reactive<ColumnCounts>({
+  todo: 0,
+  inProgress: 0,
+  complete: 0
 })
 const formOpen = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
@@ -42,6 +54,10 @@ function syncFromStorage(): void {
   columnTasks.todo = grouped.todo
   columnTasks.inProgress = grouped.inProgress
   columnTasks.complete = grouped.complete
+  const counts = countActiveTasksByColumn(tasks.value)
+  columnCounts.todo = counts.todo
+  columnCounts.inProgress = counts.inProgress
+  columnCounts.complete = counts.complete
 }
 
 onMounted(() => {
@@ -177,6 +193,7 @@ function onRestore(taskId: string): void {
         :key="state"
         v-model="columnTasks[state]"
         :state="state"
+        :active-count="columnCounts[state]"
         @edit="openEdit"
         @delete="openDeleteConfirm"
         @change="onColumnChange(state, $event)"

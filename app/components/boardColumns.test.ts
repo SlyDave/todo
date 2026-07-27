@@ -3,6 +3,7 @@ import type { Task } from '../types/task'
 import {
   COLUMN_HEADINGS,
   COLUMN_ORDER,
+  countActiveTasksByColumn,
   groupActiveTasksByColumn,
   isActiveTask
 } from './boardColumns'
@@ -80,5 +81,71 @@ describe('boardColumns', () => {
     expect(groups.todo).toEqual([])
     expect(groups.inProgress.map((task) => task.id)).toEqual(['live'])
     expect(groups.complete).toEqual([])
+  })
+
+  it('counts active tasks per column to match the board distribution', () => {
+    const tasks = [
+      makeTask({ id: 'a', state: 'todo' }),
+      makeTask({ id: 'b', state: 'todo' }),
+      makeTask({ id: 'c', state: 'inProgress' }),
+      makeTask({ id: 'd', state: 'complete' }),
+      makeTask({ id: 'e', state: 'complete' }),
+      makeTask({ id: 'f', state: 'complete' })
+    ]
+
+    expect(countActiveTasksByColumn(tasks)).toEqual({
+      todo: 2,
+      inProgress: 1,
+      complete: 3
+    })
+  })
+
+  it('refreshes counts when tasks move, are created, or are soft-deleted', () => {
+    expect(
+      countActiveTasksByColumn([
+        makeTask({ id: 'a', state: 'todo' }),
+        makeTask({ id: 'b', state: 'inProgress' })
+      ])
+    ).toEqual({ todo: 1, inProgress: 1, complete: 0 })
+
+    // After create + move InProgress → Complete
+    expect(
+      countActiveTasksByColumn([
+        makeTask({ id: 'a', state: 'todo' }),
+        makeTask({ id: 'b', state: 'complete' }),
+        makeTask({ id: 'c', state: 'todo' })
+      ])
+    ).toEqual({ todo: 2, inProgress: 0, complete: 1 })
+
+    // After soft-delete of the newly created task
+    expect(
+      countActiveTasksByColumn([
+        makeTask({ id: 'a', state: 'todo' }),
+        makeTask({ id: 'b', state: 'complete' }),
+        makeTask({
+          id: 'c',
+          state: 'todo',
+          deletedAt: '2026-07-27T12:00:00.000Z'
+        })
+      ])
+    ).toEqual({ todo: 1, inProgress: 0, complete: 1 })
+  })
+
+  it('counts all active tasks even when a priority-filtered visible subset is smaller', () => {
+    const allActiveInTodo = [
+      makeTask({ id: 'low', state: 'todo', priority: 'low' }),
+      makeTask({ id: 'med', state: 'todo', priority: 'medium' }),
+      makeTask({ id: 'high', state: 'todo', priority: 'high' }),
+      makeTask({ id: 'doing', state: 'inProgress', priority: 'low' })
+    ]
+    // Priority filter would hide low/medium from the card list only.
+    const visibleCards = allActiveInTodo.filter((task) => task.priority === 'high')
+
+    expect(visibleCards).toHaveLength(1)
+    expect(countActiveTasksByColumn(allActiveInTodo)).toEqual({
+      todo: 3,
+      inProgress: 1,
+      complete: 0
+    })
   })
 })
