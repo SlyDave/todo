@@ -1,25 +1,24 @@
 <script setup lang="ts">
 import type { Task, TaskPriority } from '../types/task'
+import { DESCRIPTION_MAX_LENGTH, TITLE_MAX_LENGTH } from '../utils/task-domain'
 import { PRIORITY_OPTIONS } from './taskPriority'
 import {
-  TASK_FORM_BACKGROUND_COLOUR_LEGEND,
+  TASK_FORM_BACKGROUND_COLOUR_LABEL,
   TASK_FORM_CANCEL_LABEL,
+  TASK_FORM_COLOUR_CUSTOM_LABEL,
   TASK_FORM_COLOUR_LABEL,
-  TASK_FORM_DESCRIPTION_HINT,
+  TASK_FORM_COLOUR_NONE_LABEL,
   TASK_FORM_DESCRIPTION_LABEL,
   TASK_FORM_DESCRIPTION_PLACEHOLDER,
   TASK_FORM_DESCRIPTION_REQUIRED,
-  TASK_FORM_DUE_DATE_HINT,
   TASK_FORM_DUE_DATE_LABEL,
-  TASK_FORM_PRIORITY_HINT,
   TASK_FORM_PRIORITY_LABEL,
-  TASK_FORM_TITLE_HINT,
   TASK_FORM_TITLE_LABEL,
   TASK_FORM_TITLE_PLACEHOLDER,
-  TASK_FORM_USE_BACKGROUND_COLOUR,
   taskFormDialogTitle,
   taskFormSubmitLabel
 } from './taskFormCopy'
+import { taskFormCanSubmit } from './taskFormSubmit'
 
 export interface TaskFormPayload {
   title: string
@@ -28,6 +27,15 @@ export interface TaskFormPayload {
   dueDate: string | null
   backgroundColour: string | null
 }
+
+type ColourPreset = 'none' | 'custom'
+
+const COLOUR_PRESET_OPTIONS = [
+  { value: 'none' as const, label: TASK_FORM_COLOUR_NONE_LABEL },
+  { value: 'custom' as const, label: TASK_FORM_COLOUR_CUSTOM_LABEL }
+]
+
+const DEFAULT_CUSTOM_COLOUR = '#ffffff'
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -45,12 +53,13 @@ const title = ref('')
 const description = ref('')
 const priority = ref<TaskPriority>('medium')
 const dueDate = ref('')
-const useBackgroundColour = ref(false)
-const backgroundColour = ref('#ffffff')
+const colourPreset = ref<ColourPreset>('none')
+const customColour = ref(DEFAULT_CUSTOM_COLOUR)
 const descriptionError = ref<string | null>(null)
 
 const dialogTitle = computed(() => taskFormDialogTitle(props.mode))
 const submitLabel = computed(() => taskFormSubmitLabel(props.mode))
+const canSubmit = computed(() => taskFormCanSubmit(description.value))
 
 function resetFromTask(): void {
   descriptionError.value = null
@@ -59,8 +68,13 @@ function resetFromTask(): void {
     description.value = props.task.description
     priority.value = props.task.priority
     dueDate.value = props.task.dueDate ?? ''
-    useBackgroundColour.value = props.task.backgroundColour !== null
-    backgroundColour.value = props.task.backgroundColour ?? '#ffffff'
+    if (props.task.backgroundColour !== null) {
+      colourPreset.value = 'custom'
+      customColour.value = props.task.backgroundColour
+    } else {
+      colourPreset.value = 'none'
+      customColour.value = DEFAULT_CUSTOM_COLOUR
+    }
     return
   }
 
@@ -68,8 +82,8 @@ function resetFromTask(): void {
   description.value = ''
   priority.value = 'medium'
   dueDate.value = ''
-  useBackgroundColour.value = false
-  backgroundColour.value = '#ffffff'
+  colourPreset.value = 'none'
+  customColour.value = DEFAULT_CUSTOM_COLOUR
 }
 
 watch(open, (isOpen) => {
@@ -77,6 +91,11 @@ watch(open, (isOpen) => {
     resetFromTask()
   }
 })
+
+function onCustomColourInput(value: string | number): void {
+  customColour.value = String(value)
+  colourPreset.value = 'custom'
+}
 
 function validate(): boolean {
   if (description.value.trim() === '') {
@@ -88,7 +107,7 @@ function validate(): boolean {
 }
 
 function onSubmit(): void {
-  if (!validate()) {
+  if (!canSubmit.value || !validate()) {
     return
   }
 
@@ -98,7 +117,7 @@ function onSubmit(): void {
     description: description.value,
     priority: priority.value,
     dueDate: trimmedDue === '' ? null : trimmedDue,
-    backgroundColour: useBackgroundColour.value ? backgroundColour.value : null
+    backgroundColour: colourPreset.value === 'none' ? null : customColour.value
   })
 }
 
@@ -115,12 +134,14 @@ function onCancel(): void {
     data-testid="task-form-modal"
   >
     <template #body>
-      <form class="flex flex-col gap-4" data-testid="task-form" @submit.prevent="onSubmit">
-        <UFormField :label="TASK_FORM_TITLE_LABEL" name="title" :hint="TASK_FORM_TITLE_HINT">
+      <form class="flex w-full flex-col gap-4" data-testid="task-form" @submit.prevent="onSubmit">
+        <UFormField :label="TASK_FORM_TITLE_LABEL" name="title" class="w-full">
           <UInput
             v-model="title"
             name="title"
+            class="w-full"
             autocomplete="off"
+            :maxlength="TITLE_MAX_LENGTH"
             :placeholder="TASK_FORM_TITLE_PLACEHOLDER"
             data-testid="task-form-title"
           />
@@ -130,33 +151,29 @@ function onCancel(): void {
           :label="TASK_FORM_DESCRIPTION_LABEL"
           name="description"
           required
+          class="w-full"
           :error="descriptionError ?? undefined"
         >
           <UTextarea
             v-model="description"
             name="description"
+            class="w-full"
             :rows="5"
             autoresize
             required
+            :maxlength="DESCRIPTION_MAX_LENGTH"
             :placeholder="TASK_FORM_DESCRIPTION_PLACEHOLDER"
             data-testid="task-form-description"
             :aria-invalid="descriptionError !== null"
-            aria-describedby="description-hint"
             @update:model-value="descriptionError = null"
           />
-          <p id="description-hint" class="mt-1 text-xs text-muted">
-            {{ TASK_FORM_DESCRIPTION_HINT }}
-          </p>
         </UFormField>
 
-        <UFormField
-          :label="TASK_FORM_PRIORITY_LABEL"
-          name="priority"
-          :hint="TASK_FORM_PRIORITY_HINT"
-        >
+        <UFormField :label="TASK_FORM_PRIORITY_LABEL" name="priority" class="w-full">
           <USelect
             v-model="priority"
             name="priority"
+            class="w-full"
             :items="PRIORITY_OPTIONS"
             value-key="value"
             label-key="label"
@@ -164,41 +181,42 @@ function onCancel(): void {
           />
         </UFormField>
 
-        <UFormField
-          :label="TASK_FORM_DUE_DATE_LABEL"
-          name="dueDate"
-          :hint="TASK_FORM_DUE_DATE_HINT"
-        >
-          <UInput v-model="dueDate" type="date" name="dueDate" data-testid="task-form-due-date" />
+        <UFormField :label="TASK_FORM_DUE_DATE_LABEL" name="dueDate" class="w-full">
+          <UInput
+            v-model="dueDate"
+            type="date"
+            name="dueDate"
+            class="w-full"
+            data-testid="task-form-due-date"
+          />
         </UFormField>
 
-        <fieldset class="flex flex-col gap-2">
-          <legend class="text-sm font-medium text-default">
-            {{ TASK_FORM_BACKGROUND_COLOUR_LEGEND }}
-          </legend>
-          <label class="flex items-center gap-2 text-sm text-default">
-            <input
-              v-model="useBackgroundColour"
-              type="checkbox"
-              class="size-4 rounded border-default"
-              data-testid="task-form-use-colour"
+        <UFormField
+          :label="TASK_FORM_BACKGROUND_COLOUR_LABEL"
+          name="backgroundColour"
+          class="w-full"
+        >
+          <div class="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+            <USelect
+              v-model="colourPreset"
+              name="colourPreset"
+              class="w-full sm:w-44"
+              :items="COLOUR_PRESET_OPTIONS"
+              value-key="value"
+              label-key="label"
+              data-testid="task-form-colour-preset"
             />
-            {{ TASK_FORM_USE_BACKGROUND_COLOUR }}
-          </label>
-          <UFormField
-            v-if="useBackgroundColour"
-            :label="TASK_FORM_COLOUR_LABEL"
-            name="backgroundColour"
-            class="max-w-40"
-          >
             <UInput
-              v-model="backgroundColour"
+              :model-value="customColour"
               type="color"
               name="backgroundColour"
+              class="h-10 w-full min-w-48 flex-1"
+              :aria-label="TASK_FORM_COLOUR_LABEL"
               data-testid="task-form-colour"
+              @update:model-value="onCustomColourInput"
             />
-          </UFormField>
-        </fieldset>
+          </div>
+        </UFormField>
 
         <p
           v-if="submitError"
@@ -219,7 +237,12 @@ function onCancel(): void {
           >
             {{ TASK_FORM_CANCEL_LABEL }}
           </UButton>
-          <UButton type="submit" color="primary" data-testid="task-form-submit">
+          <UButton
+            type="submit"
+            color="primary"
+            :disabled="!canSubmit"
+            data-testid="task-form-submit"
+          >
             {{ submitLabel }}
           </UButton>
         </div>

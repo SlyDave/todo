@@ -1,5 +1,5 @@
 /** Primary control to open the create-task form. */
-export const BOARD_ADD_TASK_LABEL = 'Add task'
+export const BOARD_ADD_TASK_LABEL = 'Create task'
 
 /** Accessible name for the three-column board region. */
 export const BOARD_REGION_LABEL = 'Task board'
