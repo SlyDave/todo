@@ -3,8 +3,13 @@ import type {
   CalendarViewMode,
   HistogramIntensity,
   MonthDayCell,
-  MonthHistogram
+  MonthHistogram,
+  YearDayCell,
+  YearHistogram
 } from '../types/task'
+
+/** Number of Monday-start week columns in the rolling yearly grid. */
+export const YEAR_HISTOGRAM_WEEK_COUNT = 52
 
 export class CalendarHistogramError extends Error {
   constructor(message: string) {
@@ -123,6 +128,98 @@ export function buildMonthHistogram(
   return { year, month, mode, peak, days }
 }
 
+/**
+ * UTC Monday on or before the given UTC calendar date (`YYYY-MM-DD`).
+ * Week rows are Monday-first (ISO-style).
+ */
+export function mondayOnOrBefore(dateKey: string): string {
+  const ms = parseUtcDateKey(dateKey)
+  const day = new Date(ms)
+  const sundayBased = day.getUTCDay()
+  const daysFromMonday = sundayBased === 0 ? 6 : sundayBased - 1
+  day.setUTCDate(day.getUTCDate() - daysFromMonday)
+  return day.toISOString().slice(0, 10)
+}
+
+/**
+ * Counts matching activity events per UTC day key for a mode.
+ * Events for other modes or with unparseable timestamps are ignored.
+ */
+export function countActivityByDateKey(
+  events: readonly ActivityEvent[],
+  mode: CalendarViewMode = 'activity'
+): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const event of events) {
+    if (!eventMatchesMode(event, mode)) {
+      continue
+    }
+    const key = activityDateKey(event.at)
+    if (key === null) {
+      continue
+    }
+    counts.set(key, (counts.get(key) ?? 0) + 1)
+  }
+  return counts
+}
+
+/**
+ * Builds a rolling ~52-week contribution grid ending on `endDate` (UTC).
+ * Last column is the week containing `endDate`; last in-range cell is `endDate`.
+ * Days after `endDate` in that week are included as out-of-range padding.
+ * Intensity is scaled to the peak in-range day in the window for `mode`.
+ */
+export function buildYearHistogram(
+  events: readonly ActivityEvent[],
+  endDate: string,
+  mode: CalendarViewMode = 'activity'
+): YearHistogram {
+  const endKey = assertUtcDateKey(endDate)
+  const endMonday = mondayOnOrBefore(endKey)
+  const startMonday = addUtcDays(endMonday, -(YEAR_HISTOGRAM_WEEK_COUNT - 1) * 7)
+  const countsByDay = countActivityByDateKey(events, mode)
+
+  let peak = 0
+  for (let weekIndex = 0; weekIndex < YEAR_HISTOGRAM_WEEK_COUNT; weekIndex++) {
+    for (let weekRow = 0; weekRow < 7; weekRow++) {
+      const date = addUtcDays(startMonday, weekIndex * 7 + weekRow)
+      if (date > endKey) {
+        continue
+      }
+      const count = countsByDay.get(date) ?? 0
+      if (count > peak) {
+        peak = count
+      }
+    }
+  }
+
+  const days: YearDayCell[] = []
+  for (let weekIndex = 0; weekIndex < YEAR_HISTOGRAM_WEEK_COUNT; weekIndex++) {
+    for (let weekRow = 0; weekRow < 7; weekRow++) {
+      const date = addUtcDays(startMonday, weekIndex * 7 + weekRow)
+      const inRange = date <= endKey
+      const count = inRange ? (countsByDay.get(date) ?? 0) : 0
+      days.push({
+        date,
+        weekRow,
+        weekIndex,
+        count,
+        intensity: inRange ? intensityStage(count, peak) : 0,
+        inRange
+      })
+    }
+  }
+
+  return {
+    endDate: endKey,
+    startDate: startMonday,
+    weekCount: YEAR_HISTOGRAM_WEEK_COUNT,
+    mode,
+    peak,
+    days
+  }
+}
+
 function assertYearMonth(year: number, month: number): void {
   if (!Number.isInteger(year) || year < 1 || year > 9999) {
     throw new CalendarHistogramError('Year must be an integer from 1 to 9999.')
@@ -134,4 +231,25 @@ function assertYearMonth(year: number, month: number): void {
 
 function formatUtcDate(year: number, month: number, day: number): string {
   return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+function assertUtcDateKey(dateKey: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+    throw new CalendarHistogramError('Date must be a UTC calendar key YYYY-MM-DD.')
+  }
+  const ms = Date.parse(`${dateKey}T00:00:00.000Z`)
+  if (Number.isNaN(ms) || new Date(ms).toISOString().slice(0, 10) !== dateKey) {
+    throw new CalendarHistogramError('Date must be a real UTC calendar day.')
+  }
+  return dateKey
+}
+
+function parseUtcDateKey(dateKey: string): number {
+  return Date.parse(`${assertUtcDateKey(dateKey)}T00:00:00.000Z`)
+}
+
+function addUtcDays(dateKey: string, days: number): string {
+  const day = new Date(parseUtcDateKey(dateKey))
+  day.setUTCDate(day.getUTCDate() + days)
+  return day.toISOString().slice(0, 10)
 }

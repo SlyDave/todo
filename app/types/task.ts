@@ -35,7 +35,7 @@ export interface ActivityEvent {
 }
 
 /**
- * Five colour intensity stages for the monthly calendar histogram.
+ * Five colour intensity stages for calendar histograms.
  * `0` is the lowest (empty / no activity); `4` is the brightest (peak day).
  */
 export type HistogramIntensity = 0 | 1 | 2 | 3 | 4
@@ -64,4 +64,47 @@ export interface MonthHistogram {
   peak: number
   /** Contiguous days 1…N for the month (always navigable, even when empty). */
   days: MonthDayCell[]
+}
+
+/**
+ * One day cell in the rolling yearly contribution grid.
+ * Rows are Monday-first (`weekRow` 0…6); columns are weeks (`weekIndex`).
+ */
+export interface YearDayCell {
+  /** UTC calendar date as `YYYY-MM-DD`. */
+  date: string
+  /** Row index: `0` = Monday … `6` = Sunday (UTC). */
+  weekRow: number
+  /** Column index: `0` = oldest week … `weekCount - 1` = current week. */
+  weekIndex: number
+  /** Event count for this day in the active histogram mode (`0` when not in range). */
+  count: number
+  intensity: HistogramIntensity
+  /**
+   * `true` for days from the window start through `endDate` inclusive.
+   * Days after `endDate` in the current week are padding (`false`).
+   */
+  inRange: boolean
+}
+
+/**
+ * Rolling ~52-week contribution grid ending on `endDate` (typically today).
+ * Intensity is scaled to the peak in-range day in the window for `mode`.
+ */
+export interface YearHistogram {
+  /** Inclusive UTC end date (`YYYY-MM-DD`); last in-range cell. */
+  endDate: string
+  /** Monday (UTC) of the first week column (`YYYY-MM-DD`). */
+  startDate: string
+  /** Number of week columns (52). */
+  weekCount: number
+  /** View mode used to derive counts and peak. */
+  mode: CalendarViewMode
+  /** Highest daily count among in-range days for `mode`; `0` when empty. */
+  peak: number
+  /**
+   * Flat list in column-major order (week 0 Mon…Sun, then week 1, …).
+   * Length is always `weekCount * 7`. The last in-range cell is `endDate`.
+   */
+  days: YearDayCell[]
 }
