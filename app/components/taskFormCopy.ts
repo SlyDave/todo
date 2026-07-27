@@ -29,8 +29,7 @@ export const TASK_FORM_DESCRIPTION_LABEL = 'Description'
 export const TASK_FORM_DESCRIPTION_PLACEHOLDER = 'What needs doing? Markdown is supported.'
 
 /** Description field helper text. */
-export const TASK_FORM_DESCRIPTION_HINT =
-  'Required. You may use Markdown for formatting.'
+export const TASK_FORM_DESCRIPTION_HINT = 'Required. You may use Markdown for formatting.'
 
 /** Client-side required-description message. */
 export const TASK_FORM_DESCRIPTION_REQUIRED = 'Description is required.'

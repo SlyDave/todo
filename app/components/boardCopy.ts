@@ -20,8 +20,7 @@ export const PAGE_INTRO = 'Tasks grouped by ToDo, InProgress, and Complete.'
 export const DOCUMENT_TITLE = 'To-Do'
 
 /** SEO description (British English; domain column names). */
-export const DOCUMENT_DESCRIPTION =
-  'Personal to-do board — ToDo, InProgress, and Complete.'
+export const DOCUMENT_DESCRIPTION = 'Personal to-do board — ToDo, InProgress, and Complete.'
 
 /** Singular/plural active-count phrase for column metrics aria-labels. */
 export function boardColumnCountLabel(count: number): string {

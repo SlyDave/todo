@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { DOCUMENT_DESCRIPTION, DOCUMENT_TITLE, PAGE_HEADING, PAGE_INTRO } from './components/boardCopy'
+import { DOCUMENT_DESCRIPTION, DOCUMENT_TITLE, PAGE_HEADING } from './components/boardCopy'
 
 useHead({
   meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],

@@ -116,11 +116,7 @@ function onCancel(): void {
   >
     <template #body>
       <form class="flex flex-col gap-4" data-testid="task-form" @submit.prevent="onSubmit">
-        <UFormField
-          :label="TASK_FORM_TITLE_LABEL"
-          name="title"
-          :hint="TASK_FORM_TITLE_HINT"
-        >
+        <UFormField :label="TASK_FORM_TITLE_LABEL" name="title" :hint="TASK_FORM_TITLE_HINT">
           <UInput
             v-model="title"
             name="title"
