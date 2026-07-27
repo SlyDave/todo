@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useTaskStorage } from '../../app/composables/useTaskStorage'
-import { createTask } from '../../app/utils/task-domain'
+import { SOFT_DELETE_RETENTION_MS, createTask, softDeleteTask } from '../../app/utils/task-domain'
+import { ACTIVITY_STORAGE_KEY } from '../../app/utils/activity-storage'
 import { TASKS_STORAGE_KEY, saveTasks } from '../../app/utils/task-storage'
 
 function createMemoryStorage(initial: Record<string, string> = {}): Storage {
@@ -144,5 +145,133 @@ describe('useTaskStorage domain operations', () => {
     )
     expect(api.load(storage)[0]?.description).toBe('Keep me')
     expect(api.load(storage)[0]?.detailsModifiedAt).toBe(created.detailsModifiedAt)
+  })
+
+  it('soft-deletes a task so it is recoverable and records softDelete activity', () => {
+    const created = createTask(
+      { description: 'Delete me', title: 'Card' },
+      { now: '2026-07-26T10:00:00.000Z', id: 'del-1' }
+    )
+    const moved = {
+      ...created,
+      state: 'inProgress' as const,
+      stateChangedAt: '2026-07-26T12:00:00.000Z'
+    }
+    saveTasks([moved], storage)
+
+    const deleted = api.softDelete('del-1', {
+      now: '2026-07-27T09:00:00.000Z',
+      storage
+    })
+
+    expect(deleted?.deletedAt).toBe('2026-07-27T09:00:00.000Z')
+    expect(deleted?.state).toBe('inProgress')
+    expect(api.load(storage)[0]?.deletedAt).toBe('2026-07-27T09:00:00.000Z')
+    expect(api.listActivity(storage)).toEqual([
+      {
+        at: '2026-07-27T09:00:00.000Z',
+        kind: 'softDelete',
+        taskId: 'del-1'
+      }
+    ])
+    expect(storage.getItem(ACTIVITY_STORAGE_KEY)).not.toBeNull()
+  })
+
+  it('restores a recoverable task to its prior column and records restore activity', () => {
+    const created = createTask(
+      {
+        title: 'Restore me',
+        description: 'Body',
+        priority: 'high',
+        dueDate: '2026-08-01',
+        backgroundColour: '#abcabc'
+      },
+      { now: '2026-07-20T10:00:00.000Z', id: 'res-1' }
+    )
+    const seeded = softDeleteTask(
+      {
+        ...created,
+        state: 'complete',
+        stateChangedAt: '2026-07-21T10:00:00.000Z',
+        manualOrder: 4
+      },
+      '2026-07-22T10:00:00.000Z'
+    )
+    saveTasks([seeded], storage)
+
+    const restored = api.restore('res-1', {
+      now: '2026-07-27T10:00:00.000Z',
+      storage
+    })
+
+    expect(restored).toMatchObject({
+      id: 'res-1',
+      deletedAt: null,
+      state: 'complete',
+      title: 'Restore me',
+      description: 'Body',
+      priority: 'high',
+      dueDate: '2026-08-01',
+      backgroundColour: '#abcabc',
+      manualOrder: 4,
+      stateChangedAt: '2026-07-21T10:00:00.000Z'
+    })
+    expect(api.listActivity(storage)).toContainEqual({
+      at: '2026-07-27T10:00:00.000Z',
+      kind: 'restore',
+      taskId: 'res-1'
+    })
+  })
+
+  it('removes an expired soft-deleted task when restore is attempted', () => {
+    const deletedAt = '2026-06-01T00:00:00.000Z'
+    const expired = softDeleteTask(
+      createTask({ description: 'Too old' }, { now: '2026-05-01T00:00:00.000Z', id: 'exp-1' }),
+      deletedAt
+    )
+    saveTasks([expired], storage)
+
+    const afterWindow = new Date(Date.parse(deletedAt) + SOFT_DELETE_RETENTION_MS + 1).toISOString()
+    expect(api.restore('exp-1', { now: afterWindow, storage })).toBeNull()
+    expect(api.load(storage)).toEqual([])
+    expect(api.listActivity(storage)).toEqual([])
+  })
+
+  it('purgeExpired removes only soft-deletes older than 30 days', () => {
+    const now = '2026-07-27T12:00:00.000Z'
+    const active = createTask(
+      { description: 'Active' },
+      { now: '2026-07-01T00:00:00.000Z', id: 'p-active' }
+    )
+    const recoverable = softDeleteTask(
+      createTask({ description: 'Soon' }, { now: '2026-07-01T00:00:00.000Z', id: 'p-ok' }),
+      '2026-07-10T12:00:00.000Z'
+    )
+    const expiredDeletedAt = new Date(Date.parse(now) - SOFT_DELETE_RETENTION_MS - 1).toISOString()
+    const expired = softDeleteTask(
+      createTask({ description: 'Gone' }, { now: '2026-05-01T00:00:00.000Z', id: 'p-gone' }),
+      expiredDeletedAt
+    )
+    saveTasks([active, recoverable, expired], storage)
+
+    const kept = api.purgeExpired({ now, storage })
+    expect(kept.map((task) => task.id)).toEqual(['p-active', 'p-ok'])
+    expect(api.load(storage).map((task) => task.id)).toEqual(['p-active', 'p-ok'])
+  })
+
+  it('records create, editDetails, and changeState activity for the calendar', () => {
+    const created = api.create(
+      { description: 'Track me' },
+      { now: '2026-07-27T08:00:00.000Z', id: 'act-1', storage }
+    )
+    api.updateDetails('act-1', { title: 'Edited' }, { now: '2026-07-27T09:00:00.000Z', storage })
+    api.changeState('act-1', 'inProgress', { now: '2026-07-27T10:00:00.000Z', storage })
+
+    expect(created.id).toBe('act-1')
+    expect(api.listActivity(storage)).toEqual([
+      { at: '2026-07-27T08:00:00.000Z', kind: 'create', taskId: 'act-1' },
+      { at: '2026-07-27T09:00:00.000Z', kind: 'editDetails', taskId: 'act-1' },
+      { at: '2026-07-27T10:00:00.000Z', kind: 'changeState', taskId: 'act-1' }
+    ])
   })
 })
