@@ -4,6 +4,7 @@ import { useCalendarHistogram } from '../composables/useCalendarHistogram'
 import { ACTIVITY_STORAGE_KEY, serializeActivity } from '../utils/activity-storage'
 import {
   INTENSITY_SURFACE_CLASS,
+  activityEventsForPaint,
   buildMonthGrid,
   dayCellAriaLabel,
   formatMonthLabel,
@@ -118,5 +119,33 @@ describe('calendarMonth', () => {
       julyFirst.days.map((day) => day.intensity)
     )
     expect(julyAgain.days.map((day) => day.count)).toEqual(julyFirst.days.map((day) => day.count))
+  })
+
+  it('withholds stored activity from intensity paint until the client is ready', () => {
+    const events: ActivityEvent[] = [
+      { at: '2026-07-01T08:00:00.000Z', kind: 'create', taskId: 't1' }
+    ]
+    expect(activityEventsForPaint(false, events)).toEqual([])
+    expect(activityEventsForPaint(true, events)).toEqual(events)
+  })
+
+  it('paints stored intensities only after client-ready gating (SSR first paint)', () => {
+    const events: ActivityEvent[] = [
+      { at: '2026-07-01T08:00:00.000Z', kind: 'create', taskId: 't1' },
+      { at: '2026-07-01T12:00:00.000Z', kind: 'editDetails', taskId: 't1' }
+    ]
+    const { forMonth } = useCalendarHistogram()
+
+    const beforeMount = forMonth(2026, 7, {
+      events: activityEventsForPaint(false, events)
+    })
+    const afterMount = forMonth(2026, 7, {
+      events: activityEventsForPaint(true, events)
+    })
+
+    expect(beforeMount.days.every((day) => day.intensity === 0)).toBe(true)
+    expect(beforeMount.days.every((day) => day.count === 0)).toBe(true)
+    expect(afterMount.days.some((day) => day.intensity > 0)).toBe(true)
+    expect(afterMount.days.find((day) => day.date === '2026-07-01')?.count).toBe(2)
   })
 })

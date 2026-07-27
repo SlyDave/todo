@@ -1,9 +1,21 @@
-import type { HistogramIntensity, MonthDayCell } from '../types/task'
+import type { ActivityEvent, HistogramIntensity, MonthDayCell } from '../types/task'
 
 /** UTC calendar year and month (month is 1–12). */
 export interface YearMonth {
   year: number
   month: number
+}
+
+/**
+ * Events fed into intensity paint. Before the client has mounted, always []
+ * so SSR/hydration never stamp empty `bg-muted` classes that outlive the
+ * real `todo.activity.v1` read (#59).
+ */
+export function activityEventsForPaint(
+  clientReady: boolean,
+  storedEvents: readonly ActivityEvent[]
+): readonly ActivityEvent[] {
+  return clientReady ? storedEvents : []
 }
 
 /** One cell in the contributions-style month grid (leading/trailing pads are empty). */
