@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import draggable from 'vuedraggable'
 import type { Task, TaskState } from '../types/task'
+import { BOARD_COLUMN_EMPTY, boardColumnCountLabel } from './boardCopy'
 import { BOARD_DRAG_GROUP, type BoardDragChangeEvent } from './boardDrag'
 import { COLUMN_HEADINGS } from './boardColumns'
 
@@ -20,10 +21,7 @@ const emit = defineEmits<{
 
 const heading = computed(() => COLUMN_HEADINGS[props.state])
 
-const countLabel = computed(() => {
-  const n = props.activeCount
-  return n === 1 ? '1 task' : `${n} tasks`
-})
+const countLabel = computed(() => boardColumnCountLabel(props.activeCount))
 
 const list = computed({
   get: () => props.modelValue,
@@ -83,7 +81,7 @@ function onDragChange(event: BoardDragChangeEvent): void {
         class="pointer-events-none text-sm text-muted"
         data-testid="column-empty"
       >
-        No tasks
+        {{ BOARD_COLUMN_EMPTY }}
       </p>
     </div>
   </section>

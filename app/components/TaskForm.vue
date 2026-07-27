@@ -1,6 +1,25 @@
 <script setup lang="ts">
 import type { Task, TaskPriority } from '../types/task'
 import { PRIORITY_OPTIONS } from './taskPriority'
+import {
+  TASK_FORM_BACKGROUND_COLOUR_LEGEND,
+  TASK_FORM_CANCEL_LABEL,
+  TASK_FORM_COLOUR_LABEL,
+  TASK_FORM_DESCRIPTION_HINT,
+  TASK_FORM_DESCRIPTION_LABEL,
+  TASK_FORM_DESCRIPTION_PLACEHOLDER,
+  TASK_FORM_DESCRIPTION_REQUIRED,
+  TASK_FORM_DUE_DATE_HINT,
+  TASK_FORM_DUE_DATE_LABEL,
+  TASK_FORM_PRIORITY_HINT,
+  TASK_FORM_PRIORITY_LABEL,
+  TASK_FORM_TITLE_HINT,
+  TASK_FORM_TITLE_LABEL,
+  TASK_FORM_TITLE_PLACEHOLDER,
+  TASK_FORM_USE_BACKGROUND_COLOUR,
+  taskFormDialogTitle,
+  taskFormSubmitLabel
+} from './taskFormCopy'
 
 export interface TaskFormPayload {
   title: string
@@ -30,8 +49,8 @@ const useBackgroundColour = ref(false)
 const backgroundColour = ref('#ffffff')
 const descriptionError = ref<string | null>(null)
 
-const dialogTitle = computed(() => (props.mode === 'create' ? 'Create task' : 'Edit task'))
-const submitLabel = computed(() => (props.mode === 'create' ? 'Create task' : 'Save changes'))
+const dialogTitle = computed(() => taskFormDialogTitle(props.mode))
+const submitLabel = computed(() => taskFormSubmitLabel(props.mode))
 
 function resetFromTask(): void {
   descriptionError.value = null
@@ -61,7 +80,7 @@ watch(open, (isOpen) => {
 
 function validate(): boolean {
   if (description.value.trim() === '') {
-    descriptionError.value = 'Description is required.'
+    descriptionError.value = TASK_FORM_DESCRIPTION_REQUIRED
     return false
   }
   descriptionError.value = null
@@ -97,18 +116,18 @@ function onCancel(): void {
   >
     <template #body>
       <form class="flex flex-col gap-4" data-testid="task-form" @submit.prevent="onSubmit">
-        <UFormField label="Title" name="title" hint="Optional">
+        <UFormField :label="TASK_FORM_TITLE_LABEL" name="title" :hint="TASK_FORM_TITLE_HINT">
           <UInput
             v-model="title"
             name="title"
             autocomplete="off"
-            placeholder="Short label"
+            :placeholder="TASK_FORM_TITLE_PLACEHOLDER"
             data-testid="task-form-title"
           />
         </UFormField>
 
         <UFormField
-          label="Description"
+          :label="TASK_FORM_DESCRIPTION_LABEL"
           name="description"
           required
           :error="descriptionError ?? undefined"
@@ -119,18 +138,22 @@ function onCancel(): void {
             :rows="5"
             autoresize
             required
-            placeholder="What needs doing? Markdown is supported."
+            :placeholder="TASK_FORM_DESCRIPTION_PLACEHOLDER"
             data-testid="task-form-description"
             :aria-invalid="descriptionError !== null"
             aria-describedby="description-hint"
             @update:model-value="descriptionError = null"
           />
           <p id="description-hint" class="mt-1 text-xs text-muted">
-            Required. You may use Markdown for formatting.
+            {{ TASK_FORM_DESCRIPTION_HINT }}
           </p>
         </UFormField>
 
-        <UFormField label="Priority" name="priority" hint="Optional — defaults to Medium">
+        <UFormField
+          :label="TASK_FORM_PRIORITY_LABEL"
+          name="priority"
+          :hint="TASK_FORM_PRIORITY_HINT"
+        >
           <USelect
             v-model="priority"
             name="priority"
@@ -141,12 +164,18 @@ function onCancel(): void {
           />
         </UFormField>
 
-        <UFormField label="Due date" name="dueDate" hint="Optional">
+        <UFormField
+          :label="TASK_FORM_DUE_DATE_LABEL"
+          name="dueDate"
+          :hint="TASK_FORM_DUE_DATE_HINT"
+        >
           <UInput v-model="dueDate" type="date" name="dueDate" data-testid="task-form-due-date" />
         </UFormField>
 
         <fieldset class="flex flex-col gap-2">
-          <legend class="text-sm font-medium text-default">Background colour</legend>
+          <legend class="text-sm font-medium text-default">
+            {{ TASK_FORM_BACKGROUND_COLOUR_LEGEND }}
+          </legend>
           <label class="flex items-center gap-2 text-sm text-default">
             <input
               v-model="useBackgroundColour"
@@ -154,11 +183,11 @@ function onCancel(): void {
               class="size-4 rounded border-default"
               data-testid="task-form-use-colour"
             />
-            Use a background colour
+            {{ TASK_FORM_USE_BACKGROUND_COLOUR }}
           </label>
           <UFormField
             v-if="useBackgroundColour"
-            label="Colour"
+            :label="TASK_FORM_COLOUR_LABEL"
             name="backgroundColour"
             class="max-w-40"
           >
@@ -188,7 +217,7 @@ function onCancel(): void {
             data-testid="task-form-cancel"
             @click="onCancel"
           >
-            Cancel
+            {{ TASK_FORM_CANCEL_LABEL }}
           </UButton>
           <UButton type="submit" color="primary" data-testid="task-form-submit">
             {{ submitLabel }}
