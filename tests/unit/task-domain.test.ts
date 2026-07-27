@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Task } from '../../app/types/task'
 import {
+  DESCRIPTION_MAX_LENGTH,
   IN_PROGRESS_NEEDS_ACTIONED_MS,
   SOFT_DELETE_RETENTION_MS,
+  TITLE_MAX_LENGTH,
   TODO_NEEDS_ACTIONED_MS,
   TaskValidationError,
   changeTaskState,
@@ -116,6 +118,35 @@ describe('createTask', () => {
       'Description is required.'
     )
   })
+
+  it('exports title and description max length constants', () => {
+    expect(TITLE_MAX_LENGTH).toBe(50)
+    expect(DESCRIPTION_MAX_LENGTH).toBe(5000)
+  })
+
+  it('rejects a title longer than 50 characters', () => {
+    const title = 't'.repeat(TITLE_MAX_LENGTH + 1)
+    expect(() => createTask({ title, description: 'Body' })).toThrow(TaskValidationError)
+    expect(() => createTask({ title, description: 'Body' })).toThrow(
+      `Title must be at most ${TITLE_MAX_LENGTH} characters.`
+    )
+  })
+
+  it('rejects a description longer than 5000 characters', () => {
+    const description = 'd'.repeat(DESCRIPTION_MAX_LENGTH + 1)
+    expect(() => createTask({ description })).toThrow(TaskValidationError)
+    expect(() => createTask({ description })).toThrow(
+      `Description must be at most ${DESCRIPTION_MAX_LENGTH} characters.`
+    )
+  })
+
+  it('accepts a title of 50 characters and a description of 5000 characters', () => {
+    const title = 't'.repeat(TITLE_MAX_LENGTH)
+    const description = 'd'.repeat(DESCRIPTION_MAX_LENGTH)
+    const task = createTask({ title, description }, { id: 'limits-ok' })
+    expect(task.title).toHaveLength(TITLE_MAX_LENGTH)
+    expect(task.description).toHaveLength(DESCRIPTION_MAX_LENGTH)
+  })
 })
 
 describe('changeTaskState', () => {
@@ -213,6 +244,24 @@ describe('updateTaskDetails', () => {
     expect(() => updateTaskDetails(seedTask(), { description: ' ' })).toThrow(
       'Description is required.'
     )
+  })
+
+  it('rejects over-long title or description on update', () => {
+    expect(() =>
+      updateTaskDetails(seedTask(), { title: 't'.repeat(TITLE_MAX_LENGTH + 1) })
+    ).toThrow(`Title must be at most ${TITLE_MAX_LENGTH} characters.`)
+    expect(() =>
+      updateTaskDetails(seedTask(), { description: 'd'.repeat(DESCRIPTION_MAX_LENGTH + 1) })
+    ).toThrow(`Description must be at most ${DESCRIPTION_MAX_LENGTH} characters.`)
+  })
+
+  it('accepts at-limit title and description on update', () => {
+    const updated = updateTaskDetails(seedTask(), {
+      title: 't'.repeat(TITLE_MAX_LENGTH),
+      description: 'd'.repeat(DESCRIPTION_MAX_LENGTH)
+    })
+    expect(updated.title).toHaveLength(TITLE_MAX_LENGTH)
+    expect(updated.description).toHaveLength(DESCRIPTION_MAX_LENGTH)
   })
 
   it('rejects details edits on a soft-deleted task', () => {
