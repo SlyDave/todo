@@ -1,17 +1,32 @@
 <script setup lang="ts">
+import draggable from 'vuedraggable'
 import type { Task, TaskState } from '../types/task'
+import { BOARD_DRAG_GROUP, type BoardDragChangeEvent } from './boardDrag'
 import { COLUMN_HEADINGS } from './boardColumns'
 
 const props = defineProps<{
   state: TaskState
-  tasks: Task[]
+  modelValue: Task[]
 }>()
 
 const emit = defineEmits<{
+  'update:modelValue': [tasks: Task[]]
   edit: [task: Task]
+  change: [event: BoardDragChangeEvent]
 }>()
 
 const heading = computed(() => COLUMN_HEADINGS[props.state])
+
+const list = computed({
+  get: () => props.modelValue,
+  set: (value: Task[]) => {
+    emit('update:modelValue', value)
+  }
+})
+
+function onDragChange(event: BoardDragChangeEvent): void {
+  emit('change', event)
+}
 </script>
 
 <template>
@@ -24,16 +39,31 @@ const heading = computed(() => COLUMN_HEADINGS[props.state])
       {{ heading }}
     </h2>
 
-    <ul
-      v-if="tasks.length > 0"
-      class="mt-3 flex list-none flex-col gap-2 p-0"
-      :aria-label="`${heading} tasks`"
-    >
-      <li v-for="task in tasks" :key="task.id">
-        <TaskCard :task="task" @edit="emit('edit', $event)" />
-      </li>
-    </ul>
+    <div class="relative mt-3 min-h-24 flex-1">
+      <draggable
+        v-model="list"
+        :group="BOARD_DRAG_GROUP"
+        item-key="id"
+        tag="ul"
+        class="absolute inset-0 flex list-none flex-col gap-2 p-0"
+        :aria-label="`${heading} tasks`"
+        :data-testid="`board-column-list-${state}`"
+        @change="onDragChange"
+      >
+        <template #item="{ element }">
+          <li :data-testid="`board-task-item-${element.id}`">
+            <TaskCard :task="element" @edit="emit('edit', $event)" />
+          </li>
+        </template>
+      </draggable>
 
-    <p v-else class="mt-3 text-sm text-muted" data-testid="column-empty">No tasks</p>
+      <p
+        v-if="list.length === 0"
+        class="pointer-events-none text-sm text-muted"
+        data-testid="column-empty"
+      >
+        No tasks
+      </p>
+    </div>
   </section>
 </template>

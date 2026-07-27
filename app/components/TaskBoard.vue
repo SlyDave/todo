@@ -1,26 +1,34 @@
 <script setup lang="ts">
-import type { Task } from '../types/task'
+import type { Task, TaskState } from '../types/task'
 import { TaskValidationError } from '../utils/task-domain'
-import { COLUMN_ORDER, groupActiveTasksByColumn } from './boardColumns'
+import { type BoardDragChangeEvent, resolveColumnDrop } from './boardDrag'
+import { COLUMN_ORDER, groupActiveTasksByColumn, type TasksByColumn } from './boardColumns'
 import type { TaskFormPayload } from './TaskForm.vue'
 
-const { load, create, updateDetails } = useTaskStorage()
+const { load, create, updateDetails, changeState } = useTaskStorage()
 
 const tasks = ref<Task[]>([])
+const columnTasks = reactive<TasksByColumn>({
+  todo: [],
+  inProgress: [],
+  complete: []
+})
 const formOpen = ref(false)
 const formMode = ref<'create' | 'edit'>('create')
 const editingTask = ref<Task | null>(null)
 const submitError = ref<string | null>(null)
 
-function refresh(): void {
+function syncFromStorage(): void {
   tasks.value = load()
+  const grouped = groupActiveTasksByColumn(tasks.value)
+  columnTasks.todo = grouped.todo
+  columnTasks.inProgress = grouped.inProgress
+  columnTasks.complete = grouped.complete
 }
 
 onMounted(() => {
-  refresh()
+  syncFromStorage()
 })
-
-const tasksByColumn = computed(() => groupActiveTasksByColumn(tasks.value))
 
 function openCreate(): void {
   formMode.value = 'create'
@@ -56,7 +64,7 @@ function onSubmit(payload: TaskFormPayload): void {
         backgroundColour: payload.backgroundColour
       })
     }
-    refresh()
+    syncFromStorage()
     formOpen.value = false
   } catch (error) {
     if (error instanceof TaskValidationError) {
@@ -64,6 +72,20 @@ function onSubmit(payload: TaskFormPayload): void {
       return
     }
     submitError.value = 'Could not save the task. Please try again.'
+  }
+}
+
+function onColumnChange(state: TaskState, event: BoardDragChangeEvent): void {
+  const action = resolveColumnDrop(state, event)
+  if (action !== null) {
+    changeState(action.taskId, action.state)
+    syncFromStorage()
+    return
+  }
+
+  // Within-column reorder is deferred (#17); restore storage order.
+  if (event.moved !== undefined) {
+    syncFromStorage()
   }
 }
 </script>
@@ -85,9 +107,10 @@ function onSubmit(payload: TaskFormPayload): void {
       <BoardColumn
         v-for="state in COLUMN_ORDER"
         :key="state"
+        v-model="columnTasks[state]"
         :state="state"
-        :tasks="tasksByColumn[state]"
         @edit="openEdit"
+        @change="onColumnChange(state, $event)"
       />
     </div>
 
