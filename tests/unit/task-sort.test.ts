@@ -86,6 +86,36 @@ describe('sortTasks', () => {
     ]
     expect(ids(sortTasks(tasks, 'alphabetically'))).toEqual(['lower', 'upper'])
   })
+
+  it('ignores manualOrder under every SortMode', () => {
+    // Contradictory ranks: later SortMode keys would lose if manualOrder were consulted.
+    const withRanks: Task[] = [
+      seedTask({
+        id: 'late',
+        title: 'Zebra',
+        priority: 'low',
+        dueDate: '2026-08-20',
+        manualOrder: 0
+      }),
+      seedTask({
+        id: 'early',
+        title: 'Alpha',
+        priority: 'high',
+        dueDate: '2026-08-01',
+        manualOrder: 99
+      })
+    ]
+    const withoutRanks = withRanks.map((t) => ({ ...t, manualOrder: null }))
+
+    for (const mode of ['default', 'dueDate', 'alphabetically', 'priority'] as SortMode[]) {
+      expect(ids(sortTasks(withRanks, mode))).toEqual(ids(sortTasks(withoutRanks, mode)))
+      // Mode keys alone: early before late for every chain here.
+      expect(ids(sortTasks(withRanks, mode))).toEqual(['early', 'late'])
+      expect(compareTasks(withRanks[0]!, withRanks[1]!, mode)).toBe(
+        compareTasks(withoutRanks[0]!, withoutRanks[1]!, mode)
+      )
+    }
+  })
 })
 
 describe('compareTasks', () => {
