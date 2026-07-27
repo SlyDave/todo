@@ -18,7 +18,7 @@ useSeoMeta({
         <NuxtLink to="/" class="font-semibold text-highlighted"> To-Do </NuxtLink>
       </template>
       <template #right>
-        <UColorModeButton />
+        <ThemeToggle />
       </template>
     </UHeader>
 
