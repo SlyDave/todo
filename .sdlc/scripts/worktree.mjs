@@ -10,7 +10,7 @@
 // sibling directory, because Cursor's file tools are scoped to the workspace
 // root and an agent cannot reach ../project-backend.
 
-import { existsSync } from 'node:fs'
+import { existsSync, readdirSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { ROLES, fail, info, pass, repoRoot, run } from './common.mjs'
 
@@ -51,15 +51,58 @@ if (command === 'create') {
     process.exit(2)
   }
 
-  const path = join('.worktrees', role)
+  let path = join('.worktrees', role)
   const branch = `${role}/issue-${issue}`
 
-  if (existsSync(join(repoRoot, path))) {
-    fail(
-      `${path} already exists. Another agent may still be working there. ` +
-        `Finish or remove it first: node .sdlc/scripts/worktree.mjs remove ${role}`
-    )
-    process.exit(1)
+  const absPath = join(repoRoot, path)
+  if (existsSync(absPath)) {
+    const porcelain = run('git', ['worktree', 'list', '--porcelain']).stdout || ''
+    const normalised = absPath.replace(/\\/g, '/')
+    const registered = porcelain.split(/\r?\n/).some((line) => {
+      if (!line.startsWith('worktree ')) return false
+      const listed = line.slice('worktree '.length).replace(/\\/g, '/')
+      return listed === normalised
+    })
+
+    if (registered) {
+      fail(
+        `${path} already exists. Another agent may still be working there. ` +
+          `Finish or remove it first: node .sdlc/scripts/worktree.mjs remove ${role}`
+      )
+      process.exit(1)
+    }
+
+    // Stale empty folder left after a failed remove (common on Windows when a
+    // process still has a handle). Safe to clear if it is not a registered worktree.
+    try {
+      const entries = readdirSync(absPath)
+      if (entries.length > 0) {
+        fail(
+          `${path} exists, is not a git worktree, and is not empty. ` +
+            'Remove it manually, then retry.'
+        )
+        process.exit(1)
+      }
+      rmSync(absPath, { recursive: true, force: true })
+      info(`removed stale empty ${path}`)
+    } catch (error) {
+      // Fall back to an alternate directory so a locked empty shell does not
+      // stall the whole board (Cursor often keeps a handle on .worktrees/<role>).
+      const alt = join('.worktrees', `${role}-w`)
+      const altAbs = join(repoRoot, alt)
+      if (existsSync(altAbs)) {
+        fail(
+          `Could not clear stale ${path} (${error instanceof Error ? error.message : error}) ` +
+            `and alternate ${alt} already exists. Close IDE handles on ${path} and retry.`
+        )
+        process.exit(1)
+      }
+      info(
+        `could not clear ${path}; using alternate ${alt}. ` +
+          'Close IDE tabs under the locked folder when you can.'
+      )
+      path = alt
+    }
   }
 
   const base = defaultBranch()
@@ -86,9 +129,10 @@ if (command === 'remove') {
   if (!role) usage()
   requireRole(role)
 
-  const path = join('.worktrees', role)
-  if (!existsSync(join(repoRoot, path))) {
-    info(`${path} does not exist; nothing to remove.`)
+  const candidates = [join('.worktrees', role), join('.worktrees', `${role}-w`)]
+  const path = candidates.find((candidate) => existsSync(join(repoRoot, candidate)))
+  if (!path) {
+    info(`.worktrees/${role} does not exist; nothing to remove.`)
     process.exit(0)
   }
 
