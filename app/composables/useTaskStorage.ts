@@ -2,6 +2,7 @@ import type { ActivityEvent, Task, TaskState } from '../types/task'
 import {
   type CreateTaskInput,
   type TaskDetailsPatch,
+  TaskValidationError,
   changeTaskState,
   createActivityEvent,
   createTask,
@@ -11,6 +12,12 @@ import {
   softDeleteTask,
   updateTaskDetails
 } from '../utils/task-domain'
+import {
+  applyManualOrderRanks,
+  clearManualOrderRanks,
+  mergeTasksById,
+  withManualOrderOnColumnEnter
+} from '../utils/task-manual-order'
 import { ACTIVITY_STORAGE_KEY, appendActivity, loadActivity } from '../utils/activity-storage'
 import { TASKS_STORAGE_KEY, loadTasks, saveTasks } from '../utils/task-storage'
 
@@ -29,6 +36,10 @@ function replaceTask(tasks: Task[], index: number, updated: Task): Task[] {
   return next
 }
 
+function activeTasksInColumn(tasks: readonly Task[], state: TaskState): Task[] {
+  return tasks.filter((task) => task.deletedAt === null && task.state === state)
+}
+
 function record(
   kind: Parameters<typeof createActivityEvent>[0],
   taskId: string,
@@ -40,8 +51,9 @@ function record(
 
 /**
  * Thin client API for task board persistence in local storage.
- * Exposes create, details edit, column change, soft-delete, restore, and purge
- * so timestamps and calendar activity stay consistent.
+ * Exposes create, details edit, column change, soft-delete, restore, purge,
+ * and per-column manual-order apply/clear so timestamps, calendar activity,
+ * and ranks stay consistent.
  */
 export function useTaskStorage() {
   return {
@@ -69,13 +81,65 @@ export function useTaskStorage() {
       if (current === undefined) {
         return null
       }
-      const updated = changeTaskState(current, state, options.now)
-      if (updated === current) {
+      const moved = changeTaskState(current, state, options.now)
+      if (moved === current) {
         return current
       }
+      const destinationOthers = activeTasksInColumn(tasks, state).filter((task) => task.id !== id)
+      const updated = withManualOrderOnColumnEnter(moved, destinationOthers)
       saveTasks(replaceTask(tasks, index, updated), options.storage)
       record('changeState', updated.id, options, state)
       return updated
+    },
+    /**
+     * Establish or update a column's manual-order override.
+     * `orderedIds` must list every active task in that column exactly once.
+     * Persists contiguous ranks `0..n-1`; other columns are untouched.
+     */
+    applyManualOrder: (
+      state: TaskState,
+      orderedIds: readonly string[],
+      options: TaskMutationOptions = {}
+    ): Task[] => {
+      const tasks = loadTasks(options.storage)
+      const column = activeTasksInColumn(tasks, state)
+      if (orderedIds.length !== column.length) {
+        throw new TaskValidationError(
+          'Manual order must include every active task in the column exactly once.'
+        )
+      }
+      const byId = new Map(column.map((task) => [task.id, task]))
+      const ordered: Task[] = []
+      for (const id of orderedIds) {
+        const task = byId.get(id)
+        if (task === undefined) {
+          throw new TaskValidationError(
+            'Manual order must include every active task in the column exactly once.'
+          )
+        }
+        ordered.push(task)
+        byId.delete(id)
+      }
+      if (byId.size > 0) {
+        throw new TaskValidationError(
+          'Manual order must include every active task in the column exactly once.'
+        )
+      }
+      const ranked = applyManualOrderRanks(ordered)
+      const next = mergeTasksById(tasks, ranked)
+      saveTasks(next, options.storage)
+      return next
+    },
+    /**
+     * Clear a column's manual-order override (all ranks null) and persist.
+     * Other columns are untouched. Subsequent display follows SortMode.
+     */
+    clearManualOrder: (state: TaskState, options: TaskMutationOptions = {}): Task[] => {
+      const tasks = loadTasks(options.storage)
+      const cleared = clearManualOrderRanks(activeTasksInColumn(tasks, state))
+      const next = mergeTasksById(tasks, cleared)
+      saveTasks(next, options.storage)
+      return next
     },
     updateDetails: (
       id: string,

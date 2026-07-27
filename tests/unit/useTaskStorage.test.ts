@@ -297,4 +297,96 @@ describe('useTaskStorage domain operations', () => {
       }
     ])
   })
+
+  it('applyManualOrder persists contiguous ranks for one column only', () => {
+    const now = '2026-07-26T10:00:00.000Z'
+    const todoA = createTask({ description: 'A' }, { now, id: 'todo-a' })
+    const todoB = createTask({ description: 'B' }, { now, id: 'todo-b' })
+    const inProgress = {
+      ...createTask({ description: 'IP' }, { now, id: 'ip-1' }),
+      state: 'inProgress' as const,
+      manualOrder: 0
+    }
+    saveTasks([todoA, todoB, inProgress], storage)
+
+    const next = api.applyManualOrder('todo', ['todo-b', 'todo-a'], { storage })
+    expect(next.find((t) => t.id === 'todo-b')?.manualOrder).toBe(0)
+    expect(next.find((t) => t.id === 'todo-a')?.manualOrder).toBe(1)
+    expect(next.find((t) => t.id === 'ip-1')?.manualOrder).toBe(0)
+    expect(api.load(storage).find((t) => t.id === 'todo-b')?.manualOrder).toBe(0)
+  })
+
+  it('clearManualOrder nulls ranks in one column and leaves others', () => {
+    const now = '2026-07-26T10:00:00.000Z'
+    saveTasks(
+      [
+        { ...createTask({ description: 'A' }, { now, id: 'todo-a' }), manualOrder: 0 },
+        { ...createTask({ description: 'B' }, { now, id: 'todo-b' }), manualOrder: 1 },
+        {
+          ...createTask({ description: 'IP' }, { now, id: 'ip-1' }),
+          state: 'inProgress' as const,
+          manualOrder: 0
+        }
+      ],
+      storage
+    )
+
+    api.clearManualOrder('todo', { storage })
+    const loaded = api.load(storage)
+    expect(loaded.find((t) => t.id === 'todo-a')?.manualOrder).toBeNull()
+    expect(loaded.find((t) => t.id === 'todo-b')?.manualOrder).toBeNull()
+    expect(loaded.find((t) => t.id === 'ip-1')?.manualOrder).toBe(0)
+  })
+
+  it('changeState appends after max rank when entering an override column', () => {
+    const now = '2026-07-26T10:00:00.000Z'
+    saveTasks(
+      [
+        createTask({ description: 'Source' }, { now, id: 'mover' }),
+        {
+          ...createTask({ description: 'Dest A' }, { now, id: 'dest-a' }),
+          state: 'inProgress' as const,
+          manualOrder: 0
+        },
+        {
+          ...createTask({ description: 'Dest B' }, { now, id: 'dest-b' }),
+          state: 'inProgress' as const,
+          manualOrder: 1
+        }
+      ],
+      storage
+    )
+
+    const moved = api.changeState('mover', 'inProgress', {
+      now: '2026-07-27T10:00:00.000Z',
+      storage
+    })
+    expect(moved?.manualOrder).toBe(2)
+    expect(api.load(storage).find((t) => t.id === 'dest-a')?.manualOrder).toBe(0)
+    expect(api.load(storage).find((t) => t.id === 'dest-b')?.manualOrder).toBe(1)
+  })
+
+  it('changeState clears carried rank when entering a no-override column', () => {
+    const now = '2026-07-26T10:00:00.000Z'
+    saveTasks(
+      [
+        {
+          ...createTask({ description: 'Ranked' }, { now, id: 'mover' }),
+          manualOrder: 3
+        },
+        {
+          ...createTask({ description: 'Plain' }, { now, id: 'plain' }),
+          state: 'complete' as const,
+          manualOrder: null
+        }
+      ],
+      storage
+    )
+
+    const moved = api.changeState('mover', 'complete', {
+      now: '2026-07-27T10:00:00.000Z',
+      storage
+    })
+    expect(moved?.manualOrder).toBeNull()
+  })
 })

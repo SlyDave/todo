@@ -31,8 +31,9 @@ Pure helpers in `app/utils/priority-filter.ts` for story #16 card visibility:
 
 ## Sort modes (`app/utils/task-sort.ts`)
 
-Frontend board columns consume these pure helpers. Manual order override is out
-of scope here (story #17).
+Frontend board columns consume these pure helpers. They **ignore** `manualOrder`;
+per-column override behaviour is documented under Manual order override below
+(story #17 / task #64).
 
 ### Types
 
@@ -66,3 +67,43 @@ type SortMode = 'default' | 'alphabetically' | 'dueDate' | 'priority'
 - **Priority:** `high` → `medium` → `low`.
 - **Title:** case-insensitive `en-GB` (`localeCompare` with `sensitivity: 'base'`). Empty titles sort before non-empty (natural string order); covered by unit tests.
 - **Final:** `id` ascending for a total order when all mode keys match.
+
+## Manual order override (`app/utils/task-manual-order.ts`)
+
+Per-column ranks for story #17. Sort-mode helpers above stay unchanged and continue
+to ignore `manualOrder`. Frontend board UI consumes these pure helpers (and the
+persistence methods on `useTaskStorage`) — no board UI lives in this module.
+
+### Field
+
+`Task.manualOrder: number | null` — per-column user-chosen rank. `null` means the
+task follows the active `SortMode` when the column has no override.
+
+### Active override
+
+A column has an **active override** when at least one task in that column slice
+has a non-null `manualOrder`. While active, display order follows manual ranks,
+not the selected sort mode.
+
+### Exports
+
+| Export                         | Signature                                                                 | Behaviour                                                |
+| ------------------------------ | ------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `columnHasManualOrderOverride` | `(tasks: readonly Task[]) => boolean`                                     | `true` when ≥1 non-null `manualOrder`                    |
+| `compareManualOrder`           | `(a: Task, b: Task) => number`                                            | Ascending rank; nulls after numeric; then `id` ascending |
+| `orderTasksForColumn`          | `(tasks: readonly Task[], mode: SortMode) => Task[]`                      | Override → manual sort; else → `sortTasks(mode)`         |
+| `applyManualOrderRanks`        | `(orderedTasks: readonly Task[]) => Task[]`                               | Contiguous `0..n-1` in the given order; new array        |
+| `clearManualOrderRanks`        | `(tasks: readonly Task[]) => Task[]`                                      | All `manualOrder: null`; new array                       |
+| `withManualOrderOnColumnEnter` | `(newcomer: Task, destinationExcludingNewcomer: readonly Task[]) => Task` | Override → append after max rank; else force `null`      |
+| `mergeTasksById`               | `(allTasks: readonly Task[], updates: readonly Task[]) => Task[]`         | Replace by id; preserve `allTasks` order                 |
+
+### Persistence (`useTaskStorage`)
+
+| Method             | Signature                                                               | Behaviour                                                                 |
+| ------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `applyManualOrder` | `(state: TaskState, orderedIds: readonly string[], options?) => Task[]` | Validates ids cover every active task in the column; persists ranks       |
+| `clearManualOrder` | `(state: TaskState, options?) => Task[]`                                | Persists all-null ranks for that column only                              |
+| `changeState`      | unchanged signature                                                     | After the column move, applies `withManualOrderOnColumnEnter` before save |
+
+Other columns' ranks are never rewritten by apply/clear/enter. Gaps left when a
+task leaves an override column are left as-is until the next apply/reorder.
