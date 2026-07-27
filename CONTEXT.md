@@ -13,11 +13,11 @@ Terms below are the stakeholder’s words. Prefer them in UI copy, tickets, and 
 | Task                      | A work item on the board                                                                |
 | Title                     | Optional short label on a task                                                          |
 | Description               | Mandatory body; may include Markdown                                                    |
-| Priority                  | Optional: low, medium (default), high                                                   |
-| Due date                  | Optional date the task is due                                                           |
+| Priority                  | Optional: low, medium (default), high; when sorting by priority, high → medium → low    |
+| Due date                  | Optional date the task is due; when sorting by due date, earliest first; nulls last     |
 | Background colour         | Optional card colour                                                                    |
 | Manual order              | Per-column user-chosen rank that overrides the sort dropdown within that column         |
-| Default (sort)            | Due date, then priority, then alphabetically                                            |
+| Default (sort)            | Due date (earliest first, nulls last), then priority (high → medium → low), then A–Z    |
 | Soft-delete / recoverable | Deleted tasks kept for 30 days and restorable                                           |
 | Created                   | When the task was first created                                                         |
 | Details last modified     | When title, description, priority, due date, or colour last changed                     |
