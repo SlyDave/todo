@@ -31,7 +31,7 @@
     "@nuxt/ui": "^4.10.0",
     "dompurify": "^3.2.6",
     "marked": "^16.1.1",
-    "nuxt": "^4.5.0",
+    "nuxt": "^4.5.1",
     "tailwindcss": "^4.3.2",
     "vuedraggable": "^4.1.0"
   },
@@ -53,7 +53,7 @@
   "overrides": {
     "esbuild": ">=0.28.1",
     "minimatch": "^10.0.3",
-    "brace-expansion": "^5.0.8",
+    "brace-expansion": "^5.0.9",
     "glob": "^11.0.3",
     "readdir-glob": "^1.1.3"
   }
